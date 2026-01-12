@@ -3,7 +3,7 @@
 @section('content')
     <div class="p-6">
         <div class="flex flex-col xl:flex-row gap-6">
-
+            {{-- nyobaaa ini --}}
             {{-- PANEL KIRI --}}
             <div class="panel flex-1 px-6 py-8">
 
