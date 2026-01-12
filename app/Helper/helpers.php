@@ -1,11 +1,36 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Request;
+
 // for side bar menu active
-function set_active( $route ) {
-    if( is_array( $route ) ){
-        return in_array(Request::path(), $route) ? 'active' : '';
+if (!function_exists('set_active')) {
+    function set_active($routes, $activeClass = 'active')
+    {
+        $currentName = Route::currentRouteName(); // contoh: surat_masuk.index
+        $currentPath = Request::path();           // contoh: surat_masuk/create
+
+        if (is_array($routes)) {
+            foreach ($routes as $route) {
+                // cocokkan berdasarkan nama route atau path prefix
+                if (
+                    str_starts_with($currentName, $route) ||
+                    str_starts_with($currentPath, $route)
+                ) {
+                    return $activeClass;
+                }
+            }
+        } else {
+            if (
+                str_starts_with($currentName, $routes) ||
+                str_starts_with($currentPath, $routes)
+            ) {
+                return $activeClass;
+            }
+        }
+
+        return '';
     }
-    return Request::path() == $route ? 'active' : '';
 }
 
 // for side bar menu x-show

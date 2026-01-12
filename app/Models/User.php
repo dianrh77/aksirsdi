@@ -5,96 +5,110 @@ namespace App\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Hash;
-use DB;
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $table = 'users'; // Specify the table name if it's not pluralized
+    protected $table = 'users';
 
     protected $fillable = [
-        'last_login', // Ensure this is included
+        'user_id',
+        'name',
+        'email',
+        'password',
+        'role_name',
+        'status',
+        'avatar',
+        'join_date',
+        'last_login',
+        'phone_number',
     ];
 
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
-    /** generate id */
+    /**
+     * Auto generate user_id AKSI-0001
+     */
     protected static function boot()
     {
         parent::boot();
 
         self::creating(function ($model) {
             $latestUser = self::orderBy('user_id', 'desc')->first();
-            $nextID = $latestUser ? intval(substr($latestUser->user_id, 3)) + 1 : 1;
-            $model->user_id = 'KH-' . sprintf("%04d", $nextID);
+            $nextID = $latestUser ? intval(substr($latestUser->user_id, 5)) + 1 : 1;
+            $model->user_id = 'AKSI-' . sprintf("%04d", $nextID);
 
-            // Ensure the user_id is unique
             while (self::where('user_id', $model->user_id)->exists()) {
                 $nextID++;
-                $model->user_id = 'KH-' . sprintf("%04d", $nextID);
+                $model->user_id = 'AKSI-' . sprintf("%04d", $nextID);
             }
         });
     }
 
-    /** Insert New Users */
-    public function saveNewuser(Request $request)
+    /**
+     * RELATIONSHIPS
+     */
+
+    // multi posisi
+    public function positions()
     {
-        $validator = Validator::make($request->all(), [
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|string|email|max:255|unique:users,email',
-            'password'  => 'required|string|min:8|confirmed',
-        ], [
-            'email.unique' => 'This email is already registered. Please use another.',
-        ]);
+        return $this->belongsToMany(Position::class, 'position_user')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
 
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput()->with('error', 'Please fix the errors below.');
+    // posisi utama (primary)
+    public function primaryPosition()
+    {
+        return $this->positions()->wherePivot('is_primary', true)->first();
+    }
+
+    // helper untuk tampilan tabel
+    public function getPositionsLabelAttribute()
+    {
+        return $this->positions->pluck('name')->join(', ');
+    }
+
+    /**
+     * ROLE helper
+     */
+    public function hasRole($roles)
+    {
+        if (is_array($roles)) {
+            return in_array($this->role_name, $roles);
+        }
+        return $this->role_name === $roles;
+    }
+
+    public function getLevel()
+    {
+        $pos = $this->primaryPosition();
+
+        // Jika user belum punya posisi utama → kembalikan seperti staf
+        if (!$pos) {
+            return 999; // level non-struktural
         }
 
-        try {
-            $todayDate = Carbon::now()->toDayDateTimeString();
-            $save             = new User;
-            $save->name       = $request->name;
-            $save->avatar     = $request->image;
-            $save->email      = $request->email;
-            $save->join_date  = $todayDate;
-            $save->role_name  = 'User';
-            $save->status     = 'Active';
-            $save->password   = Hash::make($request->password);
-            $save->save();
-            return redirect('login')->with('success', 'Account created successfully :)');
-        } catch (\Exception $e) {
-            \Log::error($e);
-            return redirect()->back()->with('error', 'Failed to Create Account. Please try again.');
+        $level = 1;
+
+        while ($pos->parent) {
+            $level++;
+            $pos = $pos->parent;
         }
+
+        return $level;
     }
 }

@@ -22,15 +22,15 @@ return new class extends Migration
             $table->string('status')->nullable();
             $table->string('role_name')->nullable();
             $table->string('avatar')->nullable();
-            $table->string('position')->nullable();
+
             $table->string('department')->nullable();
-            $table->string('line_manager')->nullable();
-            $table->string('seconde_line_manager')->nullable();
+
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
         });
+
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use Illuminate\Http\Request;
-use App\Models\User;
-use Carbon\Carbon;
-use Session;
-use Auth;
 use DB;
+use Auth;
+use Session;
+use Carbon\Carbon;
+use App\Models\User;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use RealRashid\SweetAlert\Facades\Alert;
+use Illuminate\Foundation\Auth\AuthenticatesUsers;
 
 class LoginController extends Controller
 {
@@ -33,20 +34,33 @@ class LoginController extends Controller
             'email'    => 'required|string',
             'password' => 'required|string',
         ]);
+
         try {
             $credentials = $request->only('email', 'password') + ['status' => 'Active'];
+
             if (Auth::attempt($credentials)) {
                 $user = Auth::user();
                 Session::put($this->getUserSessionData($user));
-             
+
                 // Update last login
                 $user->update(['last_login' => Carbon::now()]);
-                return redirect()->intended('home')->with('success', 'Login successfully :)'); 
+
+                // Redirect berdasarkan role
+                if (in_array($user->role_name, ['kesekretariatan', 'direktur_utama', 'direktur_umum'])) {
+                    return redirect()->route('dashboard.kesekretariatan')
+                        ->with('success', 'Selamat datang di Dashboard Kesekretariatan!');
+                } elseif ($user->role_name === 'user') {
+                    return redirect()->route('dashboard.penerima')
+                        ->with('success', 'Selamat datang di Dashboard Penerima Disposisi!');
+                }
             }
-            return redirect('login')->with('error', 'Wrong Username or Password');
+
+            Alert::Error('Gagal!', 'Periksa Email dan Password Anda');
+            return redirect('login');
         } catch (\Exception $e) {
-            \Log::info($e);
-            return redirect()->back()->with('error', 'Login failed. Please try again.');
+            \Log::error('Login error: ' . $e->getMessage());
+            Alert::Error('Gagal!', 'Periksa Email dan Password Anda');
+            return redirect()->back();
         }
     }
 
@@ -74,6 +88,7 @@ class LoginController extends Controller
     {
         $request->session()->flush();
         Auth::logout();
-        return redirect('login')->with('success', 'You have been logged out successfully!');
+        Alert::success('Logout!', 'Sampai Jumpa Kembali');
+        return redirect('login');
     }
 }

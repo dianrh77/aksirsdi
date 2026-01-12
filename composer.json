@@ -10,9 +10,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "laravel/ui": "^4.6"
+        "laravel/ui": "^4.6",
+        "phpoffice/phpword": "^1.4",
+        "realrashid/sweet-alert": "^7.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -28,7 +31,11 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/Helper/PageTitleHelper.php",
+            "app/Helper/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
