@@ -1,24 +1,43 @@
+# Logs
 *.log
+
+# OS / Editor
 .DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
+Thumbs.db
 /.fleet
 /.idea
 /.nova
 /.phpunit.cache
 /.vscode
 /.zed
+
+# Environment files
+.env
+.env.backup
+.env.production
+
+# Auth / tool files
 /auth.json
+.phpactor.json
+.phpunit.result.cache
+
+# Dependencies
 /node_modules
+/vendor
+
+# Laravel build & runtime
 /public/build
 /public/hot
-/public/storage
+
+# === UPLOAD FILES (PENTING) ===
+/public/storage/*
+!/public/storage/.gitignore
+
+# Laravel storage keys
 /storage/*.key
 /storage/pail
-/vendor
+
+# Homestead
 Homestead.json
 Homestead.yaml
-Thumbs.db
+
