@@ -13,6 +13,7 @@ use App\Models\SuratMasuk;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\SuratInternalDoc;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -578,6 +579,112 @@ class SuratMasukController extends Controller
         return back();
     }
 
+    // public function validasiPopup(Request $request)
+    // {
+    //     $request->validate([
+    //         'surat_id'        => 'required|integer|exists:surat_masuks,id',
+    //         'jenis_disposisi' => 'required|in:biasa,penting,rahasia',
+    //         'catatan'         => 'required|string'
+    //     ]);
+
+    //     $surat = SuratMasuk::findOrFail($request->surat_id);
+
+    //     // Hanya manager level 3 & validasi bawahan
+    //     if (Auth::user()->getLevel() !== 3) abort(403);
+    //     if (!$this->isBawahan(Auth::user(), $surat->position_id)) abort(403);
+
+    //     // 1. Status surat langsung didisposisi
+    //     $surat->update(['status' => 'didisposisi']);
+
+    //     // 2. Pengirim disposisi = pembuat surat
+    //     $pengirimId = $surat->created_by;
+
+    //     // Tambahkan catatan otomatis
+    //     $finalCatatan = $request->catatan
+    //         . "\n\n✓ Sudah divalidasi oleh Manager (" . Auth::user()->name . ")";
+
+    //     // 3. Generate nomor disposisi
+    //     $bulan = date('m');
+    //     $tahun = date('Y');
+
+    //     $last = \App\Models\Disposisi::whereMonth('created_at', $bulan)
+    //         ->whereYear('created_at', $tahun)
+    //         ->latest('id')
+    //         ->first();
+
+    //     if ($last) {
+    //         $parts      = explode('-', $last->no_disposisi);
+    //         $lastNumber = (int) end($parts);
+    //     } else {
+    //         $lastNumber = 0;
+    //     }
+
+    //     $nextNumber   = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+    //     $noDisposisi  = "DISP-{$tahun}-{$bulan}-{$nextNumber}";
+
+    //     // 4. Buat disposisi
+    //     $disposisi = \App\Models\Disposisi::create([
+    //         'no_disposisi'     => $noDisposisi,
+    //         'surat_id'         => $surat->id,
+    //         'pengirim_id'      => $pengirimId,
+    //         'catatan'          => $finalCatatan,
+    //         'jenis_disposisi'  => $request->jenis_disposisi,
+    //         'status'           => 'Dibuat',
+    //     ]);
+
+    //     // Ambil nama pembuat surat (optional, kalau relasi creator belum ada)
+    //     $pembuat = \App\Models\User::find($surat->created_by);
+
+    //     /* =======================================================
+    //     * 5. NOTIF KE DIREKTUR UTAMA
+    //     * ======================================================= */
+    //     $direktur = \App\Models\User::where('role_name', 'direktur_utama')->first();
+
+    //     if ($direktur && $direktur->phone_number) {
+    //         $message = "📨 *DISPOSISI BARU (DARI SURAT MASUK)*\n\n"
+    //             . "No Disposisi : {$disposisi->no_disposisi}\n"
+    //             . "No Surat     : {$surat->no_surat}\n"
+    //             . "Perihal      : {$surat->perihal}\n"
+    //             . "Asal Surat   : {$surat->asal_surat}\n"
+    //             . "Pembuat Surat: " . ($pembuat->name ?? '-') . "\n\n"
+    //             . "Jenis        : {$disposisi->jenis_disposisi}\n"
+    //             . "Catatan      : {$finalCatatan}\n\n"
+    //             . "Silakan isi instruksi pada aplikasi.\n"
+    //             . "https://aksi.rsu-darulistiqomah.com";
+
+    //         \App\Helper\WppHelper::sendMessage($direktur->phone_number, $message);
+    //     }
+
+    //     /* =======================================================
+    //  * 6. NOTIF INFO KE KESEKRETARIATAN
+    //  * ======================================================= */
+    //     $kesras = \App\Models\User::where('role_name', 'kesekretariatan')->get();
+
+    //     foreach ($kesras as $ks) {
+    //         if (!$ks->phone_number) continue;
+
+    //         $msgKesra = "ℹ️ *INFO DISPOSISI BARU (VALIDASI MANAGER)*\n\n"
+    //             . "No Disposisi : {$disposisi->no_disposisi}\n"
+    //             . "No Surat     : {$surat->no_surat}\n"
+    //             . "Perihal      : {$surat->perihal}\n"
+    //             . "Asal Surat   : {$surat->asal_surat}\n\n"
+    //             . "Status Surat : sudah *didisposisi langsung ke Direktur*.\n"
+    //             . "Validator    : " . Auth::user()->name . "\n\n"
+    //             . "Catatan Manager:\n{$finalCatatan}\n\n"
+    //             . "Ini hanya notifikasi informasi.\n"
+    //             . "https://aksi.rsu-darulistiqomah.com";
+
+    //         \App\Helper\WppHelper::sendMessage($ks->phone_number, $msgKesra);
+    //     }
+
+    //     \RealRashid\SweetAlert\Facades\Alert::success(
+    //         'Berhasil!',
+    //         'Surat divalidasi, disposisi dibuat, dan notifikasi dikirim.'
+    //     );
+
+    //     return redirect()->route('surat_masuk.index');
+    // }
+
     public function validasiPopup(Request $request)
     {
         $request->validate([
@@ -586,58 +693,99 @@ class SuratMasukController extends Controller
             'catatan'         => 'required|string'
         ]);
 
-        $surat = SuratMasuk::findOrFail($request->surat_id);
-
-        // Hanya manager level 3 & validasi bawahan
+        // Hanya manager level 3
         if (Auth::user()->getLevel() !== 3) abort(403);
-        if (!$this->isBawahan(Auth::user(), $surat->position_id)) abort(403);
 
-        // 1. Status surat langsung didisposisi
-        $surat->update(['status' => 'didisposisi']);
+        /**
+         * =========================================================
+         * 1) TRANSAKSI + LOCK: cegah double create (double click)
+         * =========================================================
+         */
+        $tx = DB::transaction(function () use ($request) {
 
-        // 2. Pengirim disposisi = pembuat surat
-        $pengirimId = $surat->created_by;
+            // Lock surat row agar request paralel tidak bisa lewat bareng
+            $surat = SuratMasuk::where('id', $request->surat_id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        // Tambahkan catatan otomatis
-        $finalCatatan = $request->catatan
-            . "\n\n✓ Sudah divalidasi oleh Manager (" . Auth::user()->name . ")";
+            // validasi bawahan
+            if (!$this->isBawahan(Auth::user(), $surat->position_id)) abort(403);
 
-        // 3. Generate nomor disposisi
-        $bulan = date('m');
-        $tahun = date('Y');
+            // Jika disposisi sudah ada untuk surat ini -> STOP create (anti double)
+            $existing = Disposisi::where('surat_id', $surat->id)->first();
+            if ($existing) {
+                return [
+                    'created'   => false,
+                    'disposisi' => $existing,
+                    'surat'     => $surat,
+                    'finalCatatan' => $existing->catatan,
+                ];
+            }
 
-        $last = \App\Models\Disposisi::whereMonth('created_at', $bulan)
-            ->whereYear('created_at', $tahun)
-            ->latest('id')
-            ->first();
+            // Status surat langsung didisposisi
+            $surat->update(['status' => 'didisposisi']);
 
-        if ($last) {
-            $parts      = explode('-', $last->no_disposisi);
-            $lastNumber = (int) end($parts);
-        } else {
+            // Pengirim disposisi = pembuat surat
+            $pengirimId = $surat->created_by;
+
+            // Tambahkan catatan otomatis
+            $finalCatatan = $request->catatan
+                . "\n\n✓ Sudah divalidasi oleh Manager (" . Auth::user()->name . ")";
+
+            // Generate nomor disposisi (safe)
+            $bulan = date('m');
+            $tahun = date('Y');
+
+            // Lock query "last row" bulan ini agar nomor tidak bentrok saat paralel
+            $last = Disposisi::whereMonth('created_at', $bulan)
+                ->whereYear('created_at', $tahun)
+                ->lockForUpdate()
+                ->latest('id')
+                ->first();
+
             $lastNumber = 0;
-        }
+            if ($last) {
+                $parts = explode('-', $last->no_disposisi);
+                $lastNumber = (int) end($parts);
+            }
 
-        $nextNumber   = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        $noDisposisi  = "DISP-{$tahun}-{$bulan}-{$nextNumber}";
+            $nextNumber  = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            $noDisposisi = "DISP-{$tahun}-{$bulan}-{$nextNumber}";
 
-        // 4. Buat disposisi
-        $disposisi = \App\Models\Disposisi::create([
-            'no_disposisi'     => $noDisposisi,
-            'surat_id'         => $surat->id,
-            'pengirim_id'      => $pengirimId,
-            'catatan'          => $finalCatatan,
-            'jenis_disposisi'  => $request->jenis_disposisi,
-            'status'           => 'Dibuat',
-        ]);
+            // Buat disposisi
+            $disposisi = Disposisi::create([
+                'no_disposisi'     => $noDisposisi,
+                'surat_id'         => $surat->id,
+                'pengirim_id'      => $pengirimId,
+                'catatan'          => $finalCatatan,
+                'jenis_disposisi'  => $request->jenis_disposisi,
+                'status'           => 'Dibuat',
+            ]);
 
-        // Ambil nama pembuat surat (optional, kalau relasi creator belum ada)
-        $pembuat = \App\Models\User::find($surat->created_by);
+            return [
+                'created'   => true,
+                'disposisi' => $disposisi,
+                'surat'     => $surat,
+                'finalCatatan' => $finalCatatan,
+            ];
+        });
+
+        /**
+         * =========================================================
+         * 2) KIRIM WA DI LUAR TRANSAKSI (biar DB sudah aman dulu)
+         * =========================================================
+         */
+        $disposisi    = $tx['disposisi'];
+        $surat        = $tx['surat'];
+        $finalCatatan = $tx['finalCatatan'];
+
+        // Ambil nama pembuat surat
+        $pembuat = User::find($surat->created_by);
 
         /* =======================================================
-        * 5. NOTIF KE DIREKTUR UTAMA
-        * ======================================================= */
-        $direktur = \App\Models\User::where('role_name', 'direktur_utama')->first();
+     * NOTIF KE DIREKTUR UTAMA
+     * ======================================================= */
+        $direktur = User::where('role_name', 'direktur_utama')->first();
 
         if ($direktur && $direktur->phone_number) {
             $message = "📨 *DISPOSISI BARU (DARI SURAT MASUK)*\n\n"
@@ -655,9 +803,9 @@ class SuratMasukController extends Controller
         }
 
         /* =======================================================
-     * 6. NOTIF INFO KE KESEKRETARIATAN
+     * NOTIF INFO KE KESEKRETARIATAN
      * ======================================================= */
-        $kesras = \App\Models\User::where('role_name', 'kesekretariatan')->get();
+        $kesras = User::where('role_name', 'kesekretariatan')->get();
 
         foreach ($kesras as $ks) {
             if (!$ks->phone_number) continue;
@@ -676,9 +824,11 @@ class SuratMasukController extends Controller
             \App\Helper\WppHelper::sendMessage($ks->phone_number, $msgKesra);
         }
 
-        \RealRashid\SweetAlert\Facades\Alert::success(
+        Alert::success(
             'Berhasil!',
-            'Surat divalidasi, disposisi dibuat, dan notifikasi dikirim.'
+            $tx['created']
+                ? 'Surat divalidasi, disposisi dibuat, dan notifikasi dikirim.'
+                : 'Disposisi sudah pernah dibuat (klik dobel terdeteksi). Notifikasi tetap dikirim.'
         );
 
         return redirect()->route('surat_masuk.index');
