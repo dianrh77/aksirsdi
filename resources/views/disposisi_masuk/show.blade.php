@@ -9,150 +9,165 @@
             <a href="{{ route('disposisi_masuk.index') }}" class="text-blue hover:underline">← Kembali</a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Kiri: Detail Disposisi -->
-            <div class="md:col-span-2 bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md space-y-5">
-                <div class="flex justify-between items-start">
-                    <div>
-                        {{-- <p><strong><h1>Perihal: {{ $penerima->disposisi->suratMasuk->perihal ?? '-' }}</h1></strong></p> --}}
-                        <p><strong>No Disposisi:</strong> {{ $penerima->disposisi->no_disposisi ?? '-' }}</p>
-                        <p><strong>Jenis Disposisi:</strong> {{ $penerima->disposisi->jenis_disposisi ?? '-' }}</p>
-                        <p><strong>Tanggal:</strong> {{ optional($penerima->disposisi->created_at)->format('d M Y') }}</p>
-                        <div class="text-right mt-2">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
 
-                            @if ($penerima->disposisi->suratMasuk->internalDoc)
-                                <button type="button" class="btn btn-outline-primary view-ketik "
-                                    data-content='@json($penerima->disposisi->suratMasuk->internalDoc->data_isian)'>
-                                    📝 Isi Surat
-                                </button>
-                            @endif
+            <!-- ====================== -->
+            <!-- KIRI: DETAIL DISPOSISI (SCROLLABLE) -->
+            <!-- ====================== -->
+            <div class="md:col-span-2 bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md
+                flex flex-col min-h-0 overflow-hidden self-start"
+                style="height: 70vh;">
 
-                            <button type="button" class="btn btn-outline-primary view-pdf mt-2"
-                                data-url="{{ asset('storage/' . $penerima->disposisi->suratMasuk->file_pdf) }}">
-                                📄 Surat PDF
-                            </button>
+                {{-- inner scroll --}}
+                <div
+                    class="flex-1 min-h-0 overflow-y-auto pr-2 space-y-5
+                    rounded-lg border border-gray-200 dark:border-gray-700
+                    bg-gray-50 dark:bg-gray-900 p-3">
 
-                            {{-- Lampiran Surat KETIK --}}
-                            @if ($penerima->disposisi->suratMasuk->internalDoc && $penerima->disposisi->suratMasuk->internalDoc->lampiran_pdf)
-                                @php
-                                    $lamp = $penerima->disposisi->suratMasuk->internalDoc->lampiran_pdf;
-                                    $ext = strtolower(pathinfo($lamp, PATHINFO_EXTENSION));
-                                    $isPdf = $ext === 'pdf';
-                                @endphp
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p><strong>No Disposisi:</strong> {{ $penerima->disposisi->no_disposisi ?? '-' }}</p>
+                            <p><strong>Jenis Disposisi:</strong> {{ $penerima->disposisi->jenis_disposisi ?? '-' }}</p>
+                            <p><strong>Tanggal:</strong> {{ optional($penerima->disposisi->created_at)->format('d M Y') }}
+                            </p>
 
-                                @if ($isPdf)
-                                    <button type="button" class="btn btn-outline-primary view-pdf mt-2"
-                                        data-url="{{ asset('storage/' . $lamp) }}">
-                                        📎 Lampiran (PDF)
+                            <div class="text-right mt-2">
+                                @if ($penerima->disposisi->suratMasuk->internalDoc)
+                                    <button type="button" class="btn btn-outline-primary view-ketik"
+                                        data-content='@json($penerima->disposisi->suratMasuk->internalDoc->data_isian)'>
+                                        📝 Isi Surat
                                     </button>
-                                @else
-                                    <a href="{{ asset('storage/' . $lamp) }}" download
-                                        class="btn btn-outline-secondary mt-2">
-                                        📥 Lampiran ({{ strtoupper($ext) }})
-                                    </a>
                                 @endif
-                            @endif
 
-                            <a href="{{ route('disposisi_masuk.print', $penerima->id) }}" target="_blank"
-                                class="btn btn-outline-primary mt-2">
-                                🖨️ Cetak (1x, termasuk lampiran)
-                            </a>
+                                <button type="button" class="btn btn-outline-primary view-pdf mt-2"
+                                    data-url="{{ asset('storage/' . $penerima->disposisi->suratMasuk->file_pdf) }}">
+                                    📄 Surat PDF
+                                </button>
 
+                                {{-- Lampiran Surat KETIK --}}
+                                @if ($penerima->disposisi->suratMasuk->internalDoc && $penerima->disposisi->suratMasuk->internalDoc->lampiran_pdf)
+                                    @php
+                                        $lamp = $penerima->disposisi->suratMasuk->internalDoc->lampiran_pdf;
+                                        $ext = strtolower(pathinfo($lamp, PATHINFO_EXTENSION));
+                                        $isPdf = $ext === 'pdf';
+                                    @endphp
+
+                                    @if ($isPdf)
+                                        <button type="button" class="btn btn-outline-primary view-pdf mt-2"
+                                            data-url="{{ asset('storage/' . $lamp) }}">
+                                            📎 Lampiran (PDF)
+                                        </button>
+                                    @else
+                                        <a href="{{ asset('storage/' . $lamp) }}" download
+                                            class="btn btn-outline-secondary mt-2">
+                                            📥 Lampiran ({{ strtoupper($ext) }})
+                                        </a>
+                                    @endif
+                                @endif
+
+                                <a href="{{ route('disposisi_masuk.print', $penerima->id) }}" target="_blank"
+                                    class="btn btn-outline-primary mt-2">
+                                    🖨️ Cetak (1x, termasuk lampiran)
+                                </a>
+                            </div>
                         </div>
 
+                        @if ($penerima->status !== 'Selesai')
+                            <form id="selesaiForm" action="{{ route('disposisi_masuk.selesai', $penerima->id) }}"
+                                method="POST" class="inline">
+                                @csrf
+                                <button type="button" class="btn btn-success mt-2" id="btnTandaiSelesai">
+                                    Tandai Selesai
+                                </button>
+                            </form>
+                        @endif
                     </div>
 
-                    @if ($penerima->status !== 'Selesai')
-                        <form id="selesaiForm" action="{{ route('disposisi_masuk.selesai', $penerima->id) }}"
-                            method="POST" class="inline">
-                            @csrf
-                            <button type="button" class="btn btn-success mt-2" id="btnTandaiSelesai">
-                                Tandai Selesai
-                            </button>
-                        </form>
-                    @endif
-                </div>
+                    <!-- Instruksi dari Direksi -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🧭 Instruksi Direksi</h3>
 
-                <!-- Instruksi dari Direksi -->
-                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">🧭 Instruksi Direksi</h3>
+                        @php
+                            $instruksiUtama = $penerima->disposisi->instruksis
+                                ->where('jenis_direktur', 'utama')
+                                ->first();
+                            $instruksiUmum = $penerima->disposisi->instruksis->where('jenis_direktur', 'umum')->first();
+                        @endphp
 
-                    @php
-                        $instruksiUtama = $penerima->disposisi->instruksis->where('jenis_direktur', 'utama')->first();
-                        $instruksiUmum = $penerima->disposisi->instruksis->where('jenis_direktur', 'umum')->first();
-                    @endphp
-
-                    <!-- Jadikan dua kolom sejajar -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Direktur Utama -->
-                        <div class="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900">
-                            <p class="font-semibold text-gray-800 dark:text-gray-100">Direktur Utama:</p>
-                            <p class="text-gray-700 dark:text-gray-300 mt-1 text-sm">
-                                {{ $instruksiUtama->instruksi ?? 'Belum ada instruksi dari Direktur Utama.' }}
-                            </p>
-                            @if (!empty($instruksiUtama?->batas_waktu))
-                                <p class="text-xs text-gray-500 mt-2">
-                                    ⏰ Batas Waktu:
-                                    {{ \Carbon\Carbon::parse($instruksiUtama->batas_waktu)->format('d M Y') }}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900">
+                                <p class="font-semibold text-gray-800 dark:text-gray-100">Direktur Utama:</p>
+                                <p class="text-gray-700 dark:text-gray-300 mt-1 text-sm">
+                                    {{ $instruksiUtama->instruksi ?? 'Belum ada instruksi dari Direktur Utama.' }}
                                 </p>
-                            @endif
-                        </div>
+                                @if (!empty($instruksiUtama?->batas_waktu))
+                                    <p class="text-xs text-gray-500 mt-2">
+                                        ⏰ Batas Waktu:
+                                        {{ \Carbon\Carbon::parse($instruksiUtama->batas_waktu)->format('d M Y') }}
+                                    </p>
+                                @endif
+                            </div>
 
-                        <!-- Direktur Umum -->
-                        <div class="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900">
-                            <p class="font-semibold text-gray-800 dark:text-gray-100">Direktur Keuangan & Umum:</p>
-                            <p class="text-gray-700 dark:text-gray-300 mt-1 text-sm">
-                                {{ $instruksiUmum->instruksi ?? 'Belum ada instruksi dari Direktur Umum.' }}
-                            </p>
-                            @if (!empty($instruksiUmum?->batas_waktu))
-                                <p class="text-xs text-gray-500 mt-2">
-                                    ⏰ Batas Waktu:
-                                    {{ \Carbon\Carbon::parse($instruksiUmum->batas_waktu)->format('d M Y') }}
+                            <div class="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900">
+                                <p class="font-semibold text-gray-800 dark:text-gray-100">Direktur Keuangan & Umum:</p>
+                                <p class="text-gray-700 dark:text-gray-300 mt-1 text-sm">
+                                    {{ $instruksiUmum->instruksi ?? 'Belum ada instruksi dari Direktur Umum.' }}
                                 </p>
-                            @endif
+                                @if (!empty($instruksiUmum?->batas_waktu))
+                                    <p class="text-xs text-gray-500 mt-2">
+                                        ⏰ Batas Waktu:
+                                        {{ \Carbon\Carbon::parse($instruksiUmum->batas_waktu)->format('d M Y') }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
-                </div>
 
+                    <!-- Diteruskan ke -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">📬 Diteruskan Kepada</h3>
+                        @if ($penerima->disposisi->penerima && $penerima->disposisi->penerima->count())
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($penerima->disposisi->penerima as $terusan)
+                                    <span
+                                        class="px-3 py-1 rounded-full text-sm
+                                {{ $terusan->status == 'Belum Dibaca' ? 'bg-yellow' : ($terusan->status == 'Dibaca' ? 'bg-blue' : 'bg-green') }}">
+                                        {{ $terusan->penerima->primaryPosition()->name ?? 'User Tidak Dikenal' }}
+                                        ({{ $terusan->status }})
+                                    </span>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-gray-500 text-sm italic">Belum ada penerima lain.</p>
+                        @endif
+                    </div>
 
-
-                <!-- Diteruskan ke -->
-                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">📬 Diteruskan Kepada</h3>
-                    @if ($penerima->disposisi->penerima && $penerima->disposisi->penerima->count())
-                        <div class="flex flex-wrap gap-2">
-                            @foreach ($penerima->disposisi->penerima as $terusan)
-                                <span
-                                    class="px-3 py-1 rounded-full text-sm 
-                                    {{ $terusan->status == 'Belum Dibaca' ? 'bg-yellow' : ($terusan->status == 'Dibaca' ? 'bg-blue' : 'bg-green') }}">
-                                    {{ $terusan->penerima->primaryPosition()->name ?? 'User Tidak Dikenal' }}
-                                    ({{ $terusan->status }})
-                                </span>
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-gray-500 text-sm italic">Belum ada penerima lain.</p>
-                    @endif
                 </div>
             </div>
 
-            <!-- Kanan: Chat Feedback (tinggi penuh) -->
-            <div class="bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md flex flex-col max-h-[80vh]">
-                <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-4">💬 Feedback & Diskusi</h3>
+            <!-- ====================== -->
+            <!-- KANAN: CHAT FEEDBACK (SCROLLABLE) -->
+            <!-- ====================== -->
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md flex flex-col min-h-0 overflow-hidden self-start"
+                style="height: 70vh;">
 
-                <!-- Area Chat -->
+                <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-4 shrink-0">
+                    💬 Feedback & Diskusi
+                </h3>
+
                 <div id="chat-area"
-                    class="flex-1 overflow-y-auto p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 space-y-4 relative">
+                    class="flex-1 min-h-0 overflow-y-auto p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                   bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 space-y-4 relative">
+
                     @if ($riwayatFeedback->count())
                         @foreach ($riwayatFeedback as $item)
-                            @php
-                                $isSaya = $item->user && $item->user->id == auth()->id();
-                            @endphp
+                            @php $isSaya = $item->user && $item->user->id == auth()->id(); @endphp
 
                             <div class="flex {{ $isSaya ? 'justify-end' : 'justify-start' }}">
                                 <div
                                     class="max-w-[75%] px-4 py-3 rounded-2xl shadow-sm border relative
-                                    {{ $isSaya ? 'bg-green rounded-br-none' : 'bg-blue rounded-bl-none' }}">
+                            {{ $isSaya ? 'bg-green rounded-br-none' : 'bg-blue rounded-bl-none' }}">
+
                                     <div class="flex justify-between items-start">
                                         <p class="font-semibold text-sm">
                                             {{ $isSaya ? 'Anda' : optional($item->user->primaryPosition())->name ?? 'User Tidak Dikenal' }}
@@ -161,7 +176,9 @@
                                             {{ optional($item->updated_at)->format('d M Y H:i') }}
                                         </span>
                                     </div>
+
                                     <p class="mt-1 text-[13px] leading-snug">{{ $item->feedback }}</p>
+
                                     @if ($item->lampiran && $item->lampiran->count())
                                         <div class="mt-2 space-y-1">
                                             @foreach ($item->lampiran as $lamp)
@@ -171,13 +188,11 @@
                                                 @endphp
 
                                                 @if ($isPdf)
-                                                    <!-- PDF → buka modal -->
                                                     <button type="button" class="btn btn-outline-primary view-pdf"
                                                         data-url="{{ asset('storage/' . $lamp->file_path) }}">
                                                         📎 {{ $lamp->file_name }}
                                                     </button>
                                                 @else
-                                                    <!-- Non-PDF → download -->
                                                     <a href="{{ asset('storage/' . $lamp->file_path) }}"
                                                         download="{{ $lamp->file_name }}"
                                                         class="btn btn-outline-secondary">
@@ -185,7 +200,6 @@
                                                     </a>
                                                 @endif
 
-                                                {{-- Tombol Hapus --}}
                                                 @if ($item->user_id == auth()->id())
                                                     <form action="{{ route('disposisi_masuk.hapusLampiran', $lamp->id) }}"
                                                         method="POST" class="inline formHapusLampiran">
@@ -207,13 +221,13 @@
                         <p class="text-gray-500 text-sm italic text-center">Belum ada feedback.</p>
                     @endif
 
-                    <!-- Garis timeline di tengah -->
                     <div
                         class="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-gray-300 dark:border-gray-600 opacity-20">
                     </div>
                 </div>
             </div>
         </div>
+
 
         <!-- Form Input Feedback di bawah -->
         {{-- <form method="POST" action="{{ route('disposisi_masuk.feedback', $penerima->id) }}" enctype="multipart/form-data"

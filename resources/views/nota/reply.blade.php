@@ -11,133 +11,137 @@
             <a href="{{ route('nota.inbox') }}" class="text-blue hover:underline">← Kembali</a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
 
             <!-- ====================== -->
             <!-- KIRI: DETAIL NOTA -->
             <!-- ====================== -->
-            <div class="md:col-span-2 bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md space-y-5">
+            <div class="md:col-span-2 bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md flex flex-col min-h-0 overflow-hidden self-start"
+                style="height: 70vh;">
+                <div
+                    class="flex-1 min-h-0 overflow-y-auto space-y-4 rounded-lg p-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
 
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p><strong>No Nota:</strong> {{ $nota->nomor_nota }}</p>
-                        {{-- <p><strong>Perihal:</strong> {{ $nota->judul }}</p> --}}
-                        <p><strong>Pengirim:</strong> {{ $nota->pengirim->primaryPosition()->name }}</p>
-                        <p><strong>Tanggal:</strong> {{ $nota->created_at->format('d M Y') }}</p>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p><strong>No Nota:</strong> {{ $nota->nomor_nota }}</p>
+                            {{-- <p><strong>Perihal:</strong> {{ $nota->judul }}</p> --}}
+                            <p><strong>Pengirim:</strong> {{ $nota->pengirim->primaryPosition()->name }}</p>
+                            <p><strong>Tanggal:</strong> {{ $nota->created_at->format('d M Y') }}</p>
 
-                        @if ($nota->lampiran)
-                            <button type="button" class="btn btn-outline-primary mt-2 view-pdf"
-                                data-url="{{ asset('storage/' . $nota->lampiran) }}">
-                                📎 Lampiran Nota
-                            </button>
-                        @endif
-
-                        {{-- ✅ Lampiran Lain (NotaDinas) --}}
-                        @if ($nota->lampiran_lain)
-                            @php
-                                $url = asset('storage/' . $nota->lampiran_lain);
-                                $nama = $nota->lampiran_lain_nama ?? basename($nota->lampiran_lain);
-                                $ext = strtolower(pathinfo($nama, PATHINFO_EXTENSION));
-                                $isPdf = $ext === 'pdf';
-                            @endphp
-
-                            @if ($isPdf)
+                            @if ($nota->lampiran)
                                 <button type="button" class="btn btn-outline-primary mt-2 view-pdf"
-                                    data-url="{{ $url }}">
-                                    📎 Lampiran Lain: {{ $nama }}
+                                    data-url="{{ asset('storage/' . $nota->lampiran) }}">
+                                    📎 Lampiran Nota
                                 </button>
-                            @else
-                                <a href="{{ $url }}" target="_blank" class="btn btn-outline-secondary mt-2">
-                                    📎 Lampiran Lain: {{ $nama }}
-                                </a>
                             @endif
-                        @endif
-                        
-                        <a href="{{ route('nota.inbox.print', $nota->id) }}" target="_blank"
-                            class="btn btn-outline-primary mt-2">
-                            🖨️ Cetak (1x, termasuk lampiran)
-                        </a>
 
-                    </div>
-
-                    <!-- Tombol Tandai Selesai -->
-                    @php
-                        $penerimaRow = $nota->penerima->where('id', auth()->id())->first();
-                    @endphp
-
-                    @if ($penerimaRow && $penerimaRow->pivot->status != 'selesai')
-                        <form id="selesaiForm" action="{{ route('nota.inbox.selesai', $nota->id) }}" method="POST"
-                            class="inline">
-                            @csrf
-                            <button type="button" id="btnTandaiSelesai" class="btn btn-success">
-                                ✔ Tandai Selesai
-                            </button>
-                        </form>
-                    @endif
-                </div>
-
-                <div class="border-t pt-4 prose dark:prose-invert">
-                    {!! $nota->isi !!}
-                </div>
-
-                <!-- Diteruskan ke (Penerima Nota + Status) -->
-                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">📬 Diteruskan Kepada</h3>
-
-                    @if ($nota->penerima && $nota->penerima->count())
-                        <div class="flex flex-wrap gap-2">
-                            @foreach ($nota->penerima as $u)
+                            {{-- ✅ Lampiran Lain (NotaDinas) --}}
+                            @if ($nota->lampiran_lain)
                                 @php
-                                    $status = strtolower($u->pivot->status ?? 'baru');
-                                    $tipe = strtolower($u->pivot->tipe ?? 'langsung');
-
-                                    // warna badge berdasarkan status
-                                    $badge = in_array($status, ['baru', 'pending_manager'])
-                                        ? 'bg-yellow'
-                                        : (in_array($status, ['dibaca', 'diproses', 'validasi'])
-                                            ? 'bg-blue'
-                                            : (in_array($status, ['selesai'])
-                                                ? 'bg-green'
-                                                : (in_array($status, ['rejected', 'ditolak'])
-                                                    ? 'bg-red'
-                                                    : 'bg-gray-300')));
-
-                                    // label status biar enak dibaca
-                                    $labelStatus = match ($status) {
-                                        'pending_manager' => 'Pending Manager',
-                                        default => ucfirst($status),
-                                    };
-
-                                    $labelTipe = match ($tipe) {
-                                        'validasi' => 'Validasi',
-                                        default => 'Langsung',
-                                    };
+                                    $url = asset('storage/' . $nota->lampiran_lain);
+                                    $nama = $nota->lampiran_lain_nama ?? basename($nota->lampiran_lain);
+                                    $ext = strtolower(pathinfo($nama, PATHINFO_EXTENSION));
+                                    $isPdf = $ext === 'pdf';
                                 @endphp
 
-                                <span class="px-3 py-1 rounded-full text-sm {{ $badge }}">
-                                    {{ optional($u->primaryPosition())->name ?? ($u->name ?? 'User Tidak Dikenal') }}
-                                    <span class="opacity-80">({{ $labelTipe }} • {{ $labelStatus }})</span>
-                                </span>
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-gray-500 text-sm italic">Belum ada penerima.</p>
-                    @endif
-                </div>
+                                @if ($isPdf)
+                                    <button type="button" class="btn btn-outline-primary mt-2 view-pdf"
+                                        data-url="{{ $url }}">
+                                        📎 Lampiran Lain: {{ $nama }}
+                                    </button>
+                                @else
+                                    <a href="{{ $url }}" target="_blank" class="btn btn-outline-secondary mt-2">
+                                        📎 Lampiran Lain: {{ $nama }}
+                                    </a>
+                                @endif
+                            @endif
 
+                            <a href="{{ route('nota.inbox.print', $nota->id) }}" target="_blank"
+                                class="btn btn-outline-primary mt-2">
+                                🖨️ Cetak (1x, termasuk lampiran)
+                            </a>
+
+                        </div>
+
+                        <!-- Tombol Tandai Selesai -->
+                        @php
+                            $penerimaRow = $nota->penerima->where('id', auth()->id())->first();
+                        @endphp
+
+                        @if ($penerimaRow && $penerimaRow->pivot->status != 'selesai')
+                            <form id="selesaiForm" action="{{ route('nota.inbox.selesai', $nota->id) }}" method="POST"
+                                class="inline">
+                                @csrf
+                                <button type="button" id="btnTandaiSelesai" class="btn btn-success">
+                                    ✔ Tandai Selesai
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+
+                    <div class="border-t pt-4 prose dark:prose-invert">
+                        {!! $nota->isi !!}
+                    </div>
+
+                    <!-- Diteruskan ke (Penerima Nota + Status) -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">📬 Diteruskan Kepada</h3>
+
+                        @if ($nota->penerima && $nota->penerima->count())
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($nota->penerima as $u)
+                                    @php
+                                        $status = strtolower($u->pivot->status ?? 'baru');
+                                        $tipe = strtolower($u->pivot->tipe ?? 'langsung');
+
+                                        // warna badge berdasarkan status
+                                        $badge = in_array($status, ['baru', 'pending_manager'])
+                                            ? 'bg-yellow'
+                                            : (in_array($status, ['dibaca', 'diproses', 'validasi'])
+                                                ? 'bg-blue'
+                                                : (in_array($status, ['selesai'])
+                                                    ? 'bg-green'
+                                                    : (in_array($status, ['rejected', 'ditolak'])
+                                                        ? 'bg-red'
+                                                        : 'bg-gray-300')));
+
+                                        // label status biar enak dibaca
+                                        $labelStatus = match ($status) {
+                                            'pending_manager' => 'Pending Manager',
+                                            default => ucfirst($status),
+                                        };
+
+                                        $labelTipe = match ($tipe) {
+                                            'validasi' => 'Validasi',
+                                            default => 'Langsung',
+                                        };
+                                    @endphp
+
+                                    <span class="px-3 py-1 rounded-full text-sm {{ $badge }}">
+                                        {{ optional($u->primaryPosition())->name ?? ($u->name ?? 'User Tidak Dikenal') }}
+                                        <span class="opacity-80">({{ $labelTipe }} • {{ $labelStatus }})</span>
+                                    </span>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-gray-500 text-sm italic">Belum ada penerima.</p>
+                        @endif
+                    </div>
+                </div>
             </div>
 
             <!-- ====================== -->
             <!-- KANAN: CHAT / FEEDBACK -->
             <!-- ====================== -->
-            <div class="bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md flex flex-col max-h-[80vh]">
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-lg shadow-md flex flex-col min-h-0 overflow-hidden self-start"
+                style="height: 70vh;">
 
                 <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-4">
                     💬 Diskusi & Balasan
                 </h3>
 
                 <div id="chat-area"
-                    class="flex-1 overflow-y-auto space-y-4 rounded-lg p-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    class="flex-1 min-h-0 overflow-y-auto space-y-4 rounded-lg p-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
 
                     @forelse ($feedback as $item)
                         @php $isSaya = $item->user_id == auth()->id(); @endphp
