@@ -466,7 +466,7 @@ class DisposisiMasukController extends Controller
             }
         }
 
-        Alert::info('Selesai', 'Feedback Berhasil Ditambahkan');
+        Alert::toast('Feedback Berhasil Ditambahkan', 'success');
         return redirect()->back();
     }
 

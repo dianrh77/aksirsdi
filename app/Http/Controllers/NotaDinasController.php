@@ -659,7 +659,7 @@ class NotaDinasController extends Controller
             }
         }
 
-        Alert::success('Berhasil!', 'Nota Dinas berhasil diperbarui.');
+        Alert::toast('Nota Dinas berhasil diperbarui.', 'success');
         return redirect()->route('nota.index');
     }
 

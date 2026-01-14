@@ -8,8 +8,8 @@ class WppHelper
 {
     public static function sendMessage($number, $message)
     {
-        // // NONAKTIFKAN
-        // return true;
+        // NONAKTIFKAN
+        return true;
 
         // Format nomor otomatis
         if (substr($number, 0, 1) === '0') {
