@@ -265,7 +265,7 @@ class NotaDinasController extends Controller
                 }
             }
 
-            Alert::success('Berhasil!', 'Nota dinas berhasil dikirim.');
+            Alert::toast('Nota dinas berhasil dikirim.', 'success');
             return redirect()->route('nota.index');
         } catch (\Exception $e) {
             Alert::error('Gagal!', $e->getMessage());
@@ -471,7 +471,7 @@ class NotaDinasController extends Controller
             }
         }
 
-        Alert::success('Berhasil', 'Balasan berhasil dikirim.');
+        Alert::toast('Balasan berhasil dikirim.', 'success');
         return back();
     }
 
@@ -738,7 +738,7 @@ class NotaDinasController extends Controller
             'status' => 'baru',
         ]);
 
-        Alert::success('Berhasil', 'Nota dinas telah divalidasi dan dikirim ke penerima.');
+        Alert::toast('Nota dinas telah divalidasi dan dikirim ke penerima.', 'success');
         return redirect()->route('nota.inbox');
     }
 
@@ -846,7 +846,7 @@ class NotaDinasController extends Controller
             WppHelper::sendMessage($pengirim->phone_number, $message);
         }
 
-        Alert::success('Selesai!', 'Nota dinas telah ditandai selesai.');
+        Alert::toast('Nota dinas telah ditandai selesai.', 'success');
         return redirect()->route('nota.inbox');
     }
 
@@ -868,7 +868,7 @@ class NotaDinasController extends Controller
         // hapus row
         $file->delete();
 
-        Alert::success('Berhasil', 'Lampiran berhasil dihapus.');
+        Alert::toast('Lampiran berhasil dihapus.', 'success');
         return back();
     }
 }

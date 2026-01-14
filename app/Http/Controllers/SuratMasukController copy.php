@@ -185,7 +185,7 @@ class SuratMasukController extends Controller
             }
             // ============================
 
-            Alert::success('Berhasil!', 'Data surat masuk berhasil disimpan.');
+            Alert::toast('Data surat masuk berhasil disimpan.', 'success');
             return redirect()->route('surat_masuk.index');
         } catch (\Exception $e) {
             Alert::error('Gagal!', $e->getMessage());
@@ -241,7 +241,7 @@ class SuratMasukController extends Controller
                 $surat->save();
             }
 
-            Alert::success('Berhasil', 'Data surat masuk berhasil diperbarui!');
+            Alert::toast('Data surat masuk berhasil diperbarui!', 'success');
             return redirect()->route('surat_masuk.index');
         } catch (\Exception $e) {
             Alert::error('Gagal', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -261,7 +261,7 @@ class SuratMasukController extends Controller
 
         $surat->delete();
 
-        \RealRashid\SweetAlert\Facades\Alert::success('Berhasil', 'Data surat berhasil dihapus!');
+        \RealRashid\SweetAlert\Facades\Alert::toast('Data surat berhasil dihapus!', 'success');
         return redirect()->route('surat_masuk.index');
     }
 
@@ -286,7 +286,7 @@ class SuratMasukController extends Controller
         // Option: Notifikasi ke Kesra
         // ...
 
-        \RealRashid\SweetAlert\Facades\Alert::success('Berhasil', 'Surat berhasil divalidasi.');
+        \RealRashid\SweetAlert\Facades\Alert::toast('Surat berhasil divalidasi.', 'success');
         return redirect()->route('surat_masuk.index');
     }
 
@@ -305,7 +305,7 @@ class SuratMasukController extends Controller
         $surat->status = 'ditolak_manager';
         $surat->save();
 
-        \RealRashid\SweetAlert\Facades\Alert::success('Ditolak', 'Surat telah ditolak.');
+        \RealRashid\SweetAlert\Facades\Alert::toast('Surat telah ditolak.', 'success');
         return redirect()->route('surat_masuk.index');
     }
 }

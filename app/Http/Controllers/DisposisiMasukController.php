@@ -513,7 +513,7 @@ class DisposisiMasukController extends Controller
         // }
 
 
-        Alert::info('Selesai', 'Disposisi berhasil ditandai selesai.');
+        Alert::toast('Disposisi berhasil ditandai selesai.', 'success');
         return redirect()->route('disposisi_masuk.index');
     }
 
@@ -718,7 +718,7 @@ class DisposisiMasukController extends Controller
 
         // ====================== ALERT UI =======================
         if (count($success) > 0 && count($duplicate) == 0) {
-            Alert::success('Berhasil', 'Disposisi berhasil diteruskan kepada bawahan.');
+            Alert::toast('Disposisi berhasil diteruskan', 'success');
         }
 
         if (count($success) > 0 && count($duplicate) > 0) {
@@ -757,7 +757,7 @@ class DisposisiMasukController extends Controller
         // Hapus database
         $lamp->delete();
 
-        Alert::success('Berhasil', 'Lampiran berhasil dihapus.');
+        Alert::toast('Lampiran berhasil dihapus.', 'success');
         return back();
     }
 
@@ -861,7 +861,7 @@ class DisposisiMasukController extends Controller
         }
 
         if (count($success) > 0 && count($duplicate) == 0) {
-            Alert::success('Berhasil', 'Disposisi berhasil diteruskan.');
+            Alert::toast('Disposisi berhasil diteruskan.', 'success');
         } elseif (count($success) > 0) {
             Alert::info('Sebagian Berhasil', 'Sebagian diteruskan, sebagian sudah pernah menerima.');
         } else {
