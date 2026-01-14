@@ -23,8 +23,8 @@
         </div>
 
         <!-- =========================
-                         TAB AKTIF
-                    ========================== -->
+                                     TAB AKTIF
+                                ========================== -->
         <div x-show="activeTab === 'aktif'" x-cloak>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
 
@@ -61,8 +61,14 @@
 
                             <template x-for="task in filteredTasks(status.tasks)" :key="task.id">
                                 <div class="bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm">
-                                    <h4 class="font-semibold text-gray-800 dark:text-white"
-                                        x-text="task.disposisi_no ?? '-'"></h4>
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold text-gray-800 dark:text-white"
+                                                x-text="task.disposisi_no ?? 'No. Disposisi Tidak Ada'"></h4>
+                                        </div>
+                                        <span class="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-700"
+                                            x-text="task.tanggal_disposisi"></span>
+                                    </div>
 
                                     <div class="text-sm text-gray-700 dark:text-gray-300 mt-2 space-y-1">
                                         <p><strong>Perihal:</strong> <span x-text="task.perihal ?? '-'"></span></p>
@@ -91,8 +97,8 @@
         </div>
 
         <!-- =========================
-                         TAB ARSIP
-                    ========================== -->
+                                     TAB ARSIP
+                                ========================== -->
         <div x-show="activeTab === 'arsip'" x-cloak class="mt-6">
             <div class="bg-gray-50 dark:bg-gray-800 border rounded-2xl shadow p-4"
                 :class="filteredTasks(archiveTasks).length > 0 ? 'flex flex-col min-h-0' : ''"
