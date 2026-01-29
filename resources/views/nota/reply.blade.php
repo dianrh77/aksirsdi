@@ -6,7 +6,7 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white">
-                Perihal:</strong> {{ $nota->judul }}
+                Perihal: {{ $nota->judul }}
             </h2>
             <a href="{{ route('nota.inbox') }}" class="text-blue hover:underline">← Kembali</a>
         </div>
@@ -24,7 +24,6 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <p><strong>No Nota:</strong> {{ $nota->nomor_nota }}</p>
-                            {{-- <p><strong>Perihal:</strong> {{ $nota->judul }}</p> --}}
                             <p><strong>Pengirim:</strong> {{ $nota->pengirim->primaryPosition()->name }}</p>
                             <p><strong>Tanggal:</strong> {{ $nota->created_at->format('d M Y') }}</p>
 
@@ -94,7 +93,6 @@
                                         $status = strtolower($u->pivot->status ?? 'baru');
                                         $tipe = strtolower($u->pivot->tipe ?? 'langsung');
 
-                                        // warna badge berdasarkan status
                                         $badge = in_array($status, ['baru', 'pending_manager'])
                                             ? 'bg-yellow'
                                             : (in_array($status, ['dibaca', 'diproses', 'validasi'])
@@ -105,7 +103,6 @@
                                                         ? 'bg-red'
                                                         : 'bg-gray-300')));
 
-                                        // label status biar enak dibaca
                                         $labelStatus = match ($status) {
                                             'pending_manager' => 'Pending Manager',
                                             default => ucfirst($status),
@@ -157,51 +154,61 @@
 
                                 <p class="text-sm mt-1">{{ $item->pesan }}</p>
 
-                                @once
-                                    @php
-                                        function short_file($name, $limit = 25)
-                                        {
-                                            return strlen($name) > $limit ? substr($name, 0, $limit) . '…' : $name;
-                                        }
-                                    @endphp
-                                @endonce
-
-
                                 @if ($item->lampiran)
                                     @php
-                                        $fileName = basename($item->lampiran);
+                                        $filePath = $item->lampiran;
+                                        $fileName = basename($filePath);
                                         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
                                         $isPdf = $ext === 'pdf';
+                                        $isImage = in_array($ext, ['jpg', 'jpeg', 'png']);
+
                                         $short = strlen($fileName) > 25 ? substr($fileName, 0, 25) . '…' : $fileName;
+
+                                        $url = asset('storage/' . $filePath);
                                     @endphp
 
-                                    @if ($isPdf)
-                                        <button type="button" class="btn btn-outline-primary view-pdf"
-                                            data-url="{{ asset('storage/' . $item->lampiran) }}">
-                                            📎 {{ $short }}
-                                        </button>
-                                    @else
-                                        <a href="{{ asset('storage/' . $item->lampiran) }}" download="{{ $fileName }}"
-                                            class="btn btn-outline-secondary">
-                                            📥 {{ $short }}
-                                        </a>
-                                    @endif
-
-                                    {{-- Tombol Hapus jika milik user --}}
-                                    @if ($item->user_id == auth()->id())
-                                        <form action="{{ route('nota.inbox.lampiran.hapus', $item->id) }}" method="POST"
-                                            class="inline formHapusLampiran">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="button" class="btn btn-outline-danger btn-sm btnHapusLampiran">
-                                                🗑 Hapus
+                                    <div class="mt-2 space-y-2">
+                                        @if ($isPdf)
+                                            {{-- PDF --}}
+                                            <button type="button" class="btn btn-outline-primary view-pdf"
+                                                data-url="{{ $url }}">
+                                                📄 {{ $short }}
                                             </button>
-                                        </form>
-                                    @endif
+                                        @elseif ($isImage)
+                                            {{-- IMAGE PREVIEW --}}
+                                            <div class="max-w-full">
+                                                <img src="{{ $url }}" alt="{{ $fileName }}"
+                                                    class="max-w-full max-h-48 rounded-lg border shadow cursor-pointer hover:opacity-90 transition view-image"
+                                                    data-url="{{ $url }}">
+                                                <p class="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                                                    🖼 {{ $short }}
+                                                </p>
+                                            </div>
+                                        @else
+                                            {{-- FILE LAIN --}}
+                                            <a href="{{ $url }}" download="{{ $fileName }}"
+                                                class="btn btn-outline-secondary">
+                                                📥 {{ $short }}
+                                            </a>
+                                        @endif
+
+                                        {{-- Tombol Hapus jika milik user --}}
+                                        @if ($item->user_id == auth()->id())
+                                            <form action="{{ route('nota.inbox.lampiran.hapus', $item->id) }}"
+                                                method="POST" class="inline formHapusLampiran">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="button"
+                                                    class="btn btn-outline-danger btn-sm btnHapusLampiran">
+                                                    🗑 Hapus
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 @endif
 
-
-                                <p class="text-[10px] text-gray-500 mt-1">
+                                <p class="text-[10px] text-gray-500 mt-2">
                                     {{ $item->created_at->format('d M Y H:i') }}
                                 </p>
                             </div>
@@ -221,13 +228,11 @@
             @csrf
 
             <div class="flex flex-col md:flex-row md:items-center gap-2">
-                {{-- Textarea: full di mobile --}}
                 <textarea name="pesan" rows="3" required
                     class="w-full md:flex-1 border rounded-xl px-3 py-2 text-sm dark:bg-gray-900 resize-none
                    focus:ring-2 focus:ring-emerald-400 min-h-[90px] md:min-h-[44px]"
                     placeholder="Tulis balasan..."></textarea>
 
-                {{-- Tombol: rapih di mobile --}}
                 <div class="grid grid-cols-2 md:flex gap-2 w-full md:w-auto">
                     <input type="file" name="lampiran[]" id="lampiran" class="hidden" multiple>
 
@@ -246,17 +251,31 @@
             <div id="previewLampiran" class="mt-2 text-sm text-blue"></div>
         </form>
 
-
         <!-- ====================== -->
         <!-- MODAL PDF -->
         <!-- ====================== -->
         <div id="pdfModal" class="fixed inset-0 hidden bg-black bg-opacity-60 z-50 flex items-center justify-center">
             <div class="bg-white w-11/12 h-[90vh] rounded-lg shadow-lg overflow-hidden">
-                <div class="p-3 border-b flex justify-between">
-                    <h3 class="font-semibold">📄 Lihat Lampiran</h3>
+                <div class="p-3 border-b flex justify-between bg-gray-100">
+                    <h3 class="font-semibold text-gray-700">📄 Lihat Lampiran PDF</h3>
                     <button id="closePdf" class="text-red text-lg font-bold">✖</button>
                 </div>
-                <iframe id="pdfFrame" class="w-full h-full"></iframe>
+                <iframe id="pdfFrame" class="w-full h-full" style="border:none;"></iframe>
+            </div>
+        </div>
+
+        <!-- ====================== -->
+        <!-- MODAL IMAGE -->
+        <!-- ====================== -->
+        <div id="imageModal"
+            class="fixed inset-0 hidden bg-black bg-opacity-70 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div class="relative max-w-5xl max-h-[90vh] px-3">
+                <button id="closeImageModal"
+                    class="absolute -top-3 -right-3 bg-red text-white rounded-full w-9 h-9 flex items-center justify-center shadow">
+                    ✖
+                </button>
+                <img id="imagePreview" src="" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
+                    alt="Preview">
             </div>
         </div>
 
@@ -268,15 +287,18 @@
         // auto-scroll chat
         document.addEventListener('DOMContentLoaded', () => {
             let chat = document.getElementById('chat-area');
-            chat.scrollTop = chat.scrollHeight;
+            if (chat) chat.scrollTop = chat.scrollHeight;
         });
 
-        // preview lampiran
-        document.getElementById('lampiran').addEventListener('change', function() {
-            let wrap = document.getElementById('previewLampiran');
-            wrap.innerHTML = '';
-            [...this.files].forEach(f => wrap.innerHTML += "📎 " + f.name + "<br>");
-        });
+        // preview nama file yang dipilih (form bawah)
+        const inputLampiran = document.getElementById('lampiran');
+        if (inputLampiran) {
+            inputLampiran.addEventListener('change', function() {
+                let wrap = document.getElementById('previewLampiran');
+                wrap.innerHTML = '';
+                [...this.files].forEach(f => wrap.innerHTML += "📎 " + f.name + "<br>");
+            });
+        }
 
         // pdf modal
         document.addEventListener('click', e => {
@@ -287,8 +309,31 @@
             document.getElementById('pdfModal').classList.remove('hidden');
         });
 
-        document.getElementById('closePdf').onclick = () =>
-            document.getElementById('pdfModal').classList.add('hidden');
+        const closePdf = document.getElementById('closePdf');
+        if (closePdf) {
+            closePdf.onclick = () => document.getElementById('pdfModal').classList.add('hidden');
+        }
+
+        // image modal
+        document.addEventListener('click', function(e) {
+            let img = e.target.closest('.view-image');
+            if (!img) return;
+
+            document.getElementById('imagePreview').src = img.dataset.url;
+            document.getElementById('imageModal').classList.remove('hidden');
+        });
+
+        const closeImg = document.getElementById('closeImageModal');
+        if (closeImg) {
+            closeImg.onclick = () => document.getElementById('imageModal').classList.add('hidden');
+        }
+
+        const imageModal = document.getElementById('imageModal');
+        if (imageModal) {
+            imageModal.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.add('hidden');
+            });
+        }
     </script>
 
     <!-- Swal -->
