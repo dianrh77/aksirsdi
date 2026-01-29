@@ -152,7 +152,7 @@
                                     {{ $isSaya ? 'Anda' : $item->user->name }}
                                 </p>
 
-                                <p class="text-sm mt-1">{{ $item->pesan }}</p>
+                                <p class="text-sm mt-1 leading-relaxed">{!! nl2br(e($item->pesan)) !!}</p>
 
                                 @if ($item->lampiran)
                                     @php

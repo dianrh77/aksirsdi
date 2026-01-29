@@ -177,7 +177,7 @@
                                         </span>
                                     </div>
 
-                                    <p class="mt-1 text-[13px] leading-snug">{{ $item->feedback }}</p>
+                                    <p class="mt-1 text-[13px] leading-snug">{!! nl2br(e($item->feedback)) !!}</p>
 
                                     @if ($item->lampiran && $item->lampiran->count())
                                         <div class="mt-2 space-y-1">
