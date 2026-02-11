@@ -37,6 +37,9 @@ class DisposisiMasukController extends Controller
         $belumDibaca = DisposisiPenerima::with(['disposisi.suratMasuk', 'disposisi.pengirim'])
             ->where('penerima_id', $userId)
             ->where('status', 'Belum Dibaca')
+            ->whereHas('disposisi', function ($q) {
+                $q->where('status', '!=', 'Hold');
+            })
             ->get()
             ->map(function ($d) {
                 return [
@@ -58,6 +61,9 @@ class DisposisiMasukController extends Controller
         $diproses = DisposisiPenerima::with(['disposisi.suratMasuk', 'disposisi.pengirim'])
             ->where('penerima_id', $userId)
             ->where('status', 'Diproses')
+            ->whereHas('disposisi', function ($q) {
+                $q->where('status', '!=', 'Hold');
+            })
             ->get()
             ->map(function ($d) {
                 return [
@@ -80,6 +86,9 @@ class DisposisiMasukController extends Controller
         $selesai = DisposisiPenerima::with(['disposisi.suratMasuk', 'disposisi.pengirim'])
             ->where('penerima_id', $userId)
             ->where('status', 'Selesai')
+            ->whereHas('disposisi', function ($q) {
+                $q->where('status', '!=', 'Hold');
+            })
             ->whereMonth('waktu_selesai', now()->month)
             ->whereYear('waktu_selesai', now()->year)
             ->orderByDesc(
@@ -107,6 +116,9 @@ class DisposisiMasukController extends Controller
         $arsip = DisposisiPenerima::with(['disposisi.suratMasuk', 'disposisi.pengirim'])
             ->where('penerima_id', $userId)
             ->where('status', 'Selesai')
+            ->whereHas('disposisi', function ($q) {
+                $q->where('status', '!=', 'Hold');
+            })
             ->where('waktu_selesai', '<', now()->startOfMonth())
             ->orderByDesc('waktu_selesai')
             ->get()

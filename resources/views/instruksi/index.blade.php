@@ -147,6 +147,7 @@
                                     if (data === 'Selesai') color = 'success';
                                     else if (data === 'Menunggu') color = 'warning';
                                     else if (data === 'Diproses') color = 'info';
+                                    else if (data === 'Hold') color = 'danger';
                                     return `<span class="badge badge-outline-${color}">${data}</span>`;
                                 }
                             },
@@ -245,6 +246,12 @@
                         <span class="badgecount" x-text="sudah.length"></span>
                     </button>
                 </li>
+                <li :class="{ active: activeTab === 'hold' }">
+                    <button type="button" @click="switchTab('hold')">
+                        HOLD
+                        <span class="badgecount" x-text="hold.length"></span>
+                    </button>
+                </li>
             @else
                 {{-- DEFAULT (Direktur Utama): 2 TAB --}}
                 <li :class="{ active: activeTab === 'belum' }">
@@ -257,6 +264,12 @@
                     <button type="button" @click="switchTab('sudah')">
                         Sudah Diinstruksi
                         <span class="badgecount" x-text="sudah.length"></span>
+                    </button>
+                </li>
+                <li :class="{ active: activeTab === 'hold' }">
+                    <button type="button" @click="switchTab('hold')">
+                        HOLD
+                        <span class="badgecount" x-text="hold.length"></span>
                     </button>
                 </li>
             @endif
@@ -284,6 +297,10 @@
                     <div x-show="activeTab === 'sudah'" x-cloak>
                         <table id="tableSudah" class="whitespace-nowrap w-full"></table>
                     </div>
+
+                    <div x-show="activeTab === 'hold'" x-cloak>
+                        <table id="tableHold" class="whitespace-nowrap w-full"></table>
+                    </div>
                 @else
                     {{-- DEFAULT UTAMA --}}
                     <div x-show="activeTab === 'belum'" x-cloak>
@@ -292,6 +309,10 @@
 
                     <div x-show="activeTab === 'sudah'" x-cloak>
                         <table id="tableSudah" class="whitespace-nowrap w-full"></table>
+                    </div>
+
+                    <div x-show="activeTab === 'hold'" x-cloak>
+                        <table id="tableHold" class="whitespace-nowrap w-full"></table>
                     </div>
                 @endif
             </div>
@@ -320,12 +341,14 @@
                 // khusus umum
                 belumSaya: [],
                 monitoring: [],
+                hold: [],
 
                 // datatables
                 tableBelum: null,
                 tableSudah: null,
                 tableBelumSaya: null,
                 tableMonitoring: null,
+                tableHold: null,
 
                 activeTab: '{{ $jenis === 'umum' ? 'belum_saya' : 'belum' }}',
 
@@ -340,18 +363,19 @@
 
                 splitData() {
                     // ===== DEFAULT UTAMA =====
-                    this.belum = this.all.filter(i => i.aksi === 'buat');
-                    this.sudah = this.all.filter(i => i.aksi === 'lihat');
+                    this.hold = this.all.filter(i => i.proses_status === 'hold');
+                    this.belum = this.all.filter(i => i.aksi === 'buat' && i.proses_status !== 'hold');
+                    this.sudah = this.all.filter(i => i.aksi === 'lihat' && i.proses_status !== 'hold');
 
                     // ===== KHUSUS UMUM (pakai field group dari controller) =====
-                    this.belumSaya = this.all.filter(i => i.group === 'belum_saya');
-                    this.monitoring = this.all.filter(i => i.group === 'monitoring');
+                    this.belumSaya = this.all.filter(i => i.group === 'belum_saya' && i.proses_status !== 'hold');
+                    this.monitoring = this.all.filter(i => i.group === 'monitoring' && i.proses_status !== 'hold');
 
                     // untuk tab sudah (umum) tetap sama: group=sudah
                     // tapi kalau controller kamu hanya mengisi aksi, ini tetap aman karena sudah ada this.sudah di atas
                     // kalau mau lebih presisi untuk umum:
                     if ('{{ $jenis }}' === 'umum') {
-                        this.sudah = this.all.filter(i => i.group === 'sudah');
+                        this.sudah = this.all.filter(i => i.group === 'sudah' && i.proses_status !== 'hold');
                     }
                 },
 
@@ -382,9 +406,11 @@
                         this.tableMonitoring = this.createTable('#tableMonitoring', this.rows(this
                             .monitoring));
                         this.tableSudah = this.createTable('#tableSudah', this.rows(this.sudah));
+                        this.tableHold = this.createTable('#tableHold', this.rows(this.hold));
                     } else {
                         this.tableBelum = this.createTable('#tableBelum', this.rows(this.belum));
                         this.tableSudah = this.createTable('#tableSudah', this.rows(this.sudah));
+                        this.tableHold = this.createTable('#tableHold', this.rows(this.hold));
                     }
                 },
 

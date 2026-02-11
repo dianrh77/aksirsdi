@@ -15,6 +15,8 @@ class DisposisiInstruksi extends Model
         'jenis_direktur',
         'instruksi',
         'batas_waktu',
+        'proses_status',
+        'hold_reason',
     ];
 
     // 🔗 Relasi ke disposisi induk

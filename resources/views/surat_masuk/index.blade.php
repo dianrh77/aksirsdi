@@ -20,6 +20,12 @@
                         <span class="badgecount">{{ $internalLainnya->count() }}</span>
                     </button>
                 </li>
+                <li :class="{ active: activeTab === 'internalHold' }">
+                    <button type="button" @click="activeTab = 'internalHold'">
+                        Hold
+                        <span class="badgecount">{{ $internalHold->count() }}</span>
+                    </button>
+                </li>
             @else
                 {{-- TAB UNTUK NON-MANAJER --}}
                 <li :class="{ active: activeTab === 'internal' }">
@@ -29,6 +35,12 @@
                             {{-- {{ $internal->whereIn('status', ['menunggu_kesra', 'menunggu_manager'])->count() }} --}}
                             {{ $internal->count() }}
                         </span>
+                    </button>
+                </li>
+                <li :class="{ active: activeTab === 'internalHold' }">
+                    <button type="button" @click="activeTab = 'internalHold'">
+                        Hold
+                        <span class="badgecount">{{ $internalHold->count() }}</span>
                     </button>
                 </li>
             @endif
@@ -73,10 +85,18 @@
                     <div x-show="activeTab === 'internalLainnya'">
                         <table id="tableInternalLainnya" class="whitespace-nowrap w-full"></table>
                     </div>
+
+                    <div x-show="activeTab === 'internalHold'">
+                        <table id="tableInternalHold" class="whitespace-nowrap w-full"></table>
+                    </div>
                 @else
                     {{-- TABLE INTERNAL NON-MANAJER --}}
                     <div x-show="activeTab === 'internal'">
                         <table id="tableInternal" class="whitespace-nowrap w-full"></table>
+                    </div>
+
+                    <div x-show="activeTab === 'internalHold'">
+                        <table id="tableInternalHold" class="whitespace-nowrap w-full"></table>
                     </div>
                 @endif
 
@@ -150,6 +170,7 @@
                 external: @json($external ?? []),
                 internalMenunggu: @json($internalMenunggu ?? []),
                 internalLainnya: @json($internalLainnya ?? []),
+                internalHold: @json($internalHold ?? []),
 
                 activeTab: '{{ $level === 3 ? 'internalMenunggu' : 'internal' }}',
                 role: '{{ auth()->user()->role_name }}',
@@ -175,6 +196,7 @@
                 get headerTitle() {
                     if (this.activeTab === 'internalMenunggu') return 'Surat Menunggu Manager';
                     if (this.activeTab === 'internalLainnya') return 'Surat Internal Lainnya';
+                    if (this.activeTab === 'internalHold') return 'Surat Internal - Hold';
                     if (this.activeTab === 'internal') return 'Surat Internal';
                     return 'Surat Masuk External';
                 },
@@ -186,15 +208,18 @@
                     if (this.level === 3) {
                         this.initTable('internalMenunggu');
                         this.initTable('internalLainnya');
+                        this.initTable('internalHold');
                     } else {
                         this.initTable('internal');
+                        this.initTable('internalHold');
                     }
 
                     this.initTable('external');
                 },
 
-                prepareData(items) {
-                    return items.map(i => [
+                prepareData(items, type) {
+                    return items.map(i => {
+                        const base = [
                         i.id,
                         i.no_surat ?? '-',
                         i.perihal ?? '-',
@@ -207,7 +232,14 @@
                         i.status ?? 'Baru',
                         i.jenis_surat ?? '-',
                         i.asal_surat ?? '-',
-                    ]);
+                        ];
+
+                        if (type === 'internalHold') {
+                            base.push(i.hold_reason ?? '-');
+                        }
+
+                        return base;
+                    });
                 },
 
 
@@ -215,23 +247,31 @@
                     let items =
                         type === 'internalMenunggu' ? this.internalMenunggu :
                         type === 'internalLainnya' ? this.internalLainnya :
+                        type === 'internalHold' ? this.internalHold :
                         type === 'internal' ? this.internal :
                         this.external;
 
                     let tableId =
                         type === 'internalMenunggu' ? '#tableInternalMenunggu' :
                         type === 'internalLainnya' ? '#tableInternalLainnya' :
+                        type === 'internalHold' ? '#tableInternalHold' :
                         type === 'internal' ? '#tableInternal' :
                         '#tableExternal';
 
+                    const headings = [
+                        'AKSI', 'Nomor Surat', 'Perihal', 'Tanggal Surat',
+                        'Posisi Terakhir', 'Status', 'Jenis Surat',
+                        'Asal Surat'
+                    ];
+
+                    if (type === 'internalHold') {
+                        headings.push('Alasan Hold');
+                    }
+
                     new simpleDatatables.DataTable(tableId, {
                         data: {
-                            headings: [
-                                'AKSI', 'Nomor Surat', 'Perihal', 'Tanggal Surat',
-                                'Posisi Terakhir', 'Status', 'Jenis Surat',
-                                'Asal Surat'
-                            ],
-                            data: this.prepareData(items)
+                            headings,
+                            data: this.prepareData(items, type)
                         },
 
                         columns: [{
@@ -283,6 +323,7 @@
                                     if (data === 'didisposisi') color = 'success';
                                     else if (data === 'ditolak_manager') color =
                                         'danger';
+                                    else if (data === 'hold') color = 'danger';
 
                                     return `<span class="badge badge-outline-${color}">${data}</span>`;
                                 }

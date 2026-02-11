@@ -305,9 +305,8 @@ class DisposisiInstruksiController extends Controller
                     ?? '-';
 
                 /* ================= SUDAH INSTRUKSI? ================= */
-                $sudahInstruksi = $item->instruksis?->contains(
-                    fn($ins) => $ins->jenis_direktur === $jenis
-                ) ?? false;
+                $instruksiJenis = $item->instruksis?->firstWhere('jenis_direktur', $jenis);
+                $sudahInstruksi = $instruksiJenis ? true : false;
 
                 /* ================= MANAGER APPROVAL ================= */
                 $creator = $item->suratMasuk?->creator;
@@ -324,6 +323,9 @@ class DisposisiInstruksiController extends Controller
                 /* ================= AKSI (untuk tab lama) ================= */
                 $aksi = $sudahInstruksi ? 'lihat' : 'buat';
 
+                $prosesStatus = $instruksiJenis?->proses_status ?? null;
+                $holdReason = $instruksiJenis?->hold_reason ?? null;
+
                 /* ================= GROUP TAB KHUSUS UMUM ================= */
                 $group = null;
                 if ($jenis === 'umum') {
@@ -336,6 +338,8 @@ class DisposisiInstruksiController extends Controller
                     'id'               => $item->id,
                     'aksi'             => $aksi,
                     'group'            => $group, // null untuk utama, string untuk umum
+                    'proses_status'    => $prosesStatus,
+                    'hold_reason'      => $holdReason,
 
                     'no_disposisi'     => $item->no_disposisi ?? '-',
                     'asal_surat'       => $item->suratMasuk?->asal_surat ?? '-',
@@ -691,7 +695,16 @@ class DisposisiInstruksiController extends Controller
             'instruksi' => 'required|string|max:1000',
             'penerima_ids' => 'required|array|min:1',
             'batas_waktu' => 'nullable|date',
+            'proses_status' => 'nullable|in:lanjut,hold',
+            'hold_reason' => 'nullable|string|max:1000',
         ]);
+
+        $prosesStatus = $request->input('proses_status', 'lanjut');
+        if ($prosesStatus === 'hold') {
+            $request->validate([
+                'hold_reason' => 'required|string|max:1000',
+            ]);
+        }
 
         // ============================
         // Direktur UMUM harus penerima sah
@@ -733,6 +746,8 @@ class DisposisiInstruksiController extends Controller
             [
                 'instruksi' => $request->instruksi,
                 'batas_waktu' => $request->batas_waktu,
+                'proses_status' => $prosesStatus,
+                'hold_reason' => $prosesStatus === 'hold' ? $request->hold_reason : null,
             ]
         );
 
@@ -805,6 +820,27 @@ class DisposisiInstruksiController extends Controller
 
         // Sync penerima dengan flag baru
         $disposisi->penerimas()->sync($syncData);
+
+        // Jika HOLD: simpan status dan kirim pesan ke pembuat disposisi
+        if ($prosesStatus === 'hold') {
+            $disposisi->update(['status' => 'Hold']);
+
+            $pengirim = $disposisi->pengirim;
+            if ($pengirim && !empty($pengirim->phone_number)) {
+                $messageHold =
+                    "AKSI RSDI - DISPOSISI DI-HOLD\n\n" .
+                    "Nomor: {$disposisi->no_disposisi}\n" .
+                    "Perihal: {$disposisi->suratMasuk->perihal}\n" .
+                    "Alasan Hold: {$request->hold_reason}\n\n" .
+                    "Mohon lengkapi sesuai arahan.\n" .
+                    "Terima kasih.";
+
+                WppHelper::sendMessage($pengirim->phone_number, $messageHold);
+            }
+
+            Alert::success('Berhasil', 'Disposisi di-hold dan pesan terkirim ke pembuat disposisi.');
+            return redirect()->route('instruksi.' . $jenis . '.index');
+        }
 
         // =====================================================
         // KIRIM WA: hanya jika status = Belum Dibaca
@@ -1040,7 +1076,16 @@ class DisposisiInstruksiController extends Controller
             'instruksi' => 'required|string|max:1000',
             'batas_waktu' => 'nullable|date',
             'penerima_ids' => 'required|array|min:1',
+            'proses_status' => 'nullable|in:lanjut,hold',
+            'hold_reason' => 'nullable|string|max:1000',
         ]);
+
+        $prosesStatus = $request->input('proses_status', 'lanjut');
+        if ($prosesStatus === 'hold') {
+            $request->validate([
+                'hold_reason' => 'required|string|max:1000',
+            ]);
+        }
 
         // ==== Direktur UMUM hanya boleh update jika dia penerima ====
         if ($jenis === 'umum') {
@@ -1073,6 +1118,8 @@ class DisposisiInstruksiController extends Controller
         $instruksi->update([
             'instruksi' => $request->instruksi,
             'batas_waktu' => $request->batas_waktu,
+            'proses_status' => $prosesStatus,
+            'hold_reason' => $prosesStatus === 'hold' ? $request->hold_reason : null,
         ]);
 
         // ==== Update Penerima ====
@@ -1109,6 +1156,26 @@ class DisposisiInstruksiController extends Controller
 
         // apply perubahan penerima
         $disposisi->penerimas()->sync($syncData);
+
+        if ($prosesStatus === 'hold') {
+            $disposisi->update(['status' => 'Hold']);
+
+            $pengirim = $disposisi->pengirim;
+            if ($pengirim && !empty($pengirim->phone_number)) {
+                $messageHold =
+                    "AKSI RSDI - DISPOSISI DI-HOLD\n\n" .
+                    "Nomor: {$disposisi->no_disposisi}\n" .
+                    "Perihal: {$disposisi->suratMasuk->perihal}\n" .
+                    "Alasan Hold: {$request->hold_reason}\n\n" .
+                    "Mohon lengkapi sesuai arahan.\n" .
+                    "Terima kasih.";
+
+                WppHelper::sendMessage($pengirim->phone_number, $messageHold);
+            }
+
+            Alert::success('Berhasil', 'Disposisi di-hold dan pesan terkirim ke pembuat disposisi.');
+            return redirect()->route('instruksi.' . $jenis . '.index');
+        }
 
         // ==== Kirim WA ====
         foreach ($request->penerima_ids as $uid) {
@@ -1150,6 +1217,8 @@ class DisposisiInstruksiController extends Controller
                 WppHelper::sendMessage($direkturUmum->phone_number, $messageDU);
             }
         }
+
+        $disposisi->update(['status' => 'Diteruskan ke Penerima']);
 
         Alert::success('Berhasil', 'Instruksi berhasil diperbarui.');
         return redirect()->route('instruksi.' . $jenis . '.index');

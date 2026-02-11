@@ -134,6 +134,29 @@ class SuratMasukController extends Controller
                     return $s;
                 });
 
+            $internalHold = SuratMasuk::where('jenis_surat', 'internal')
+                ->where(fn($q) => $q->where('created_by', $userId)
+                    ->orWhereIn('status', ['menunggu_kesra', 'siap_disposisi', 'didisposisi']))
+                ->whereHas('disposisi', function ($q) {
+                    $q->where('status', 'Hold');
+                })
+                ->with('disposisi.pengirim', 'disposisi.instruksis')
+                ->latest()
+                ->get()
+                ->map(function ($s) {
+                    $pos = $this->posisiTerakhirSurat($s);
+                    $s->posisi_terakhir = $pos['text'];
+                    $s->posisi_waktu = $pos['time'];
+                    $s->posisi_state = $pos['state'];
+                    $s->status = 'hold';
+                    $holdInstruksi = $s->disposisi?->instruksis
+                        ?->where('proses_status', 'hold')
+                        ?->sortByDesc('created_at')
+                        ?->first();
+                    $s->hold_reason = $holdInstruksi?->hold_reason ?? '-';
+                    return $s;
+                });
+
             $internalMenunggu = collect([]);   // untuk Alpine
             $internalLainnya = collect([]);    // untuk Alpine
 
@@ -152,6 +175,7 @@ class SuratMasukController extends Controller
 
             return view('surat_masuk.index', [
                 'internal' => $internal,
+                'internalHold' => $internalHold,
                 'internalMenunggu' => $internalMenunggu,
                 'internalLainnya' => $internalLainnya,
                 'external' => $external,
@@ -198,8 +222,32 @@ class SuratMasukController extends Controller
                     return $s;
                 });
 
+            $internalHold = SuratMasuk::where('jenis_surat', 'internal')
+                ->where(fn($q) => $q->where('created_by', $userId)
+                    ->orWhereIn('position_id', $childPositions))
+                ->whereHas('disposisi', function ($q) {
+                    $q->where('status', 'Hold');
+                })
+                ->with('disposisi.pengirim', 'disposisi.instruksis')
+                ->latest()
+                ->get()
+                ->map(function ($s) {
+                    $pos = $this->posisiTerakhirSurat($s);
+                    $s->posisi_terakhir = $pos['text'];
+                    $s->posisi_waktu = $pos['time'];
+                    $s->posisi_state = $pos['state'];
+                    $s->status = 'hold';
+                    $holdInstruksi = $s->disposisi?->instruksis
+                        ?->where('proses_status', 'hold')
+                        ?->sortByDesc('created_at')
+                        ?->first();
+                    $s->hold_reason = $holdInstruksi?->hold_reason ?? '-';
+                    return $s;
+                });
+
             return view('surat_masuk.index', [
                 'internal' => collect([]), // biar Alpine tidak error
+                'internalHold' => $internalHold,
                 'internalMenunggu' => $internalMenunggu,
                 'internalLainnya' => $internalLainnya,
                 'external' => collect([]),
@@ -230,8 +278,31 @@ class SuratMasukController extends Controller
                     return $s;
                 });
 
+            $internalHold = SuratMasuk::where('jenis_surat', 'internal')
+                ->where('created_by', $userId)
+                ->whereHas('disposisi', function ($q) {
+                    $q->where('status', 'Hold');
+                })
+                ->with('disposisi.pengirim', 'disposisi.instruksis')
+                ->latest()
+                ->get()
+                ->map(function ($s) {
+                    $pos = $this->posisiTerakhirSurat($s);
+                    $s->posisi_terakhir = $pos['text'];
+                    $s->posisi_waktu = $pos['time'];
+                    $s->posisi_state = $pos['state'];
+                    $s->status = 'hold';
+                    $holdInstruksi = $s->disposisi?->instruksis
+                        ?->where('proses_status', 'hold')
+                        ?->sortByDesc('created_at')
+                        ?->first();
+                    $s->hold_reason = $holdInstruksi?->hold_reason ?? '-';
+                    return $s;
+                });
+
             return view('surat_masuk.index', [
                 'internal' => $internal,
+                'internalHold' => $internalHold,
                 'internalMenunggu' => collect([]),
                 'internalLainnya' => collect([]),
                 'external' => collect([]),
@@ -245,6 +316,7 @@ class SuratMasukController extends Controller
      * =============================== */
         return view('surat_masuk.index', [
             'internal' => collect([]),
+            'internalHold' => collect([]),
             'internalMenunggu' => collect([]),
             'internalLainnya' => collect([]),
             'external' => collect([]),

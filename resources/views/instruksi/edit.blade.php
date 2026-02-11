@@ -153,6 +153,33 @@
                             value="{{ old('batas_waktu', $instruksi->batas_waktu ? date('Y-m-d', strtotime($instruksi->batas_waktu)) : '') }}">
                     </div>
 
+                    {{-- Proses Lanjut / Hold --}}
+                    @php
+                        $prosesStatus = old('proses_status', $instruksi->proses_status ?? 'lanjut');
+                        $holdReasonValue = old('hold_reason', $instruksi->hold_reason ?? '');
+                    @endphp
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Status Proses</label>
+                        <input type="hidden" name="proses_status" id="proses_status" value="{{ $prosesStatus }}">
+
+                        <div class="flex items-center gap-4">
+                            <label class="inline-flex items-center gap-2">
+                                <input type="checkbox" id="proses_lanjut" class="form-checkbox">
+                                <span>Proses Lanjut</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2">
+                                <input type="checkbox" id="proses_hold" class="form-checkbox">
+                                <span>Hold</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="hold_reason_wrap" class="hidden">
+                        <label class="block text-sm font-medium mb-1">Alasan Hold</label>
+                        <textarea name="hold_reason" rows="3" class="form-textarea w-full"
+                            placeholder="Tulis alasan hold...">{{ $holdReasonValue }}</textarea>
+                    </div>
+
                     <div class="flex justify-end gap-3">
                         <a href="{{ route('instruksi.' . $jenis . '.index') }}" class="btn btn-outline-secondary">Batal</a>
 
@@ -206,6 +233,28 @@
             });
 
         });
+
+        (function() {
+            const hidden = document.getElementById('proses_status');
+            const cbLanjut = document.getElementById('proses_lanjut');
+            const cbHold = document.getElementById('proses_hold');
+            const holdWrap = document.getElementById('hold_reason_wrap');
+
+            if (!hidden || !cbLanjut || !cbHold || !holdWrap) return;
+
+            function applyState(value) {
+                const isHold = value === 'hold';
+                cbHold.checked = isHold;
+                cbLanjut.checked = !isHold;
+                hidden.value = isHold ? 'hold' : 'lanjut';
+                holdWrap.classList.toggle('hidden', !isHold);
+            }
+
+            cbLanjut.addEventListener('change', () => applyState('lanjut'));
+            cbHold.addEventListener('change', () => applyState('hold'));
+
+            applyState(hidden.value || 'lanjut');
+        })();
 
         document.addEventListener('click', e => {
             const btn = e.target.closest('.view-pdf');

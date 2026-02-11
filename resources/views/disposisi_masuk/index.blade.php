@@ -77,7 +77,8 @@
                                     </div>
 
                                     <div class="mt-3 border-t pt-2">
-                                        <a :href="`/disposisi-masuk/${task.id}`" class="btn btn-sm btn-outline-primary">
+                                        <a :href="`/disposisi-masuk/${task.id}`"
+                                            class="btn btn-sm btn-outline-primary">
                                             Lihat Detail
                                         </a>
                                     </div>
@@ -128,6 +129,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 @endsection
 
