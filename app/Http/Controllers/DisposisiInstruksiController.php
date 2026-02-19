@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Models\DisposisiReject;
 use App\Models\DisposisiPenerima;
 use App\Models\DisposisiInstruksi;
+use App\Models\DisposisiFeedback;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class DisposisiInstruksiController extends Controller
@@ -247,6 +248,54 @@ class DisposisiInstruksiController extends Controller
             ?? ($managerUser?->name ?? '-');
     }
 
+    private function posisiTerakhirDisposisi(Disposisi $disposisi): array
+    {
+        $result = [
+            'text' => 'Belum ada instruksi Direktur',
+            'time' => optional($disposisi->created_at)->format('d M Y H:i'),
+            'state' => 'none',
+        ];
+
+        $lastForward = DisposisiFeedback::whereHas('penerima', function ($q) use ($disposisi) {
+            $q->where('disposisi_id', $disposisi->id);
+        })
+            ->where('feedback', 'like', '%Disposisi Diteruskan:%')
+            ->latest('created_at')
+            ->first();
+
+        if ($lastForward) {
+            return [
+                'text' => $lastForward->feedback,
+                'time' => optional($lastForward->created_at)->format('d M Y H:i'),
+                'state' => 'forward',
+            ];
+        }
+
+        $receiverNames = DisposisiPenerima::with(['penerima.positions'])
+            ->where('disposisi_id', $disposisi->id)
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($r) {
+                $u = $r->penerima;
+                if (!$u) return null;
+                $primaryPos = $u->positions?->firstWhere('pivot.is_primary', 1);
+                return $primaryPos?->name ?? $u->name;
+            })
+            ->filter()
+            ->unique()
+            ->implode(', ');
+
+        if (!empty($receiverNames)) {
+            return [
+                'text' => "Diteruskan kepada: {$receiverNames}",
+                'time' => optional($disposisi->created_at)->format('d M Y H:i'),
+                'state' => 'initial',
+            ];
+        }
+
+        return $result;
+    }
+
     /* =====================================================
      *  INDEX – LIST DISPOSISI INSTRUKSI
      * ===================================================== */
@@ -325,6 +374,7 @@ class DisposisiInstruksiController extends Controller
 
                 $prosesStatus = $instruksiJenis?->proses_status ?? null;
                 $holdReason = $instruksiJenis?->hold_reason ?? null;
+                $posisi = $this->posisiTerakhirDisposisi($item);
 
                 /* ================= GROUP TAB KHUSUS UMUM ================= */
                 $group = null;
@@ -347,6 +397,9 @@ class DisposisiInstruksiController extends Controller
                     'jenis_disposisi'  => $item->jenis_disposisi ?? '-',
 
                     'manager_approval' => $managerApproval,
+                    'posisi_terakhir'  => $posisi['text'],
+                    'posisi_waktu'     => $posisi['time'],
+                    'posisi_state'     => $posisi['state'],
                     'status'           => $item->status ?? 'Menunggu',
                     'umur_disposisi'   => $umur,
                     'created_at'       => optional($item->created_at)->format('Y-m-d H:i'),

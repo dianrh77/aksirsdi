@@ -84,6 +84,11 @@
                         i.no_disposisi ?? '-',
                         i.asal_surat ?? '-',
                         i.perihal ?? '-',
+                        JSON.stringify({
+                            text: i.posisi_terakhir ?? 'Belum ada instruksi Direktur',
+                            time: i.posisi_waktu ?? null,
+                            state: i.posisi_state ?? 'none'
+                        }),
                         i.jenis_disposisi ?? '-',
                         i.manager_approval ?? '-',
                         i.status ?? '-',
@@ -116,6 +121,7 @@
                                 'No Disposisi',
                                 'Asal Surat',
                                 'Perihal',
+                                'Posisi Terakhir',
                                 'Jenis',
                                 'Manager Approval',
                                 'Status',
@@ -128,7 +134,7 @@
                         columns: [
                             // Jenis disposisi
                             {
-                                select: 4,
+                                select: 5,
                                 render: (data) => {
                                     const val = (data || '').toLowerCase();
                                     const color =
@@ -281,40 +287,50 @@
                 <h2 class="text-lg font-semibold text-gray-800 dark:text-white">
                     Daftar Disposisi – {{ $jenis === 'utama' ? 'Direktur Utama' : 'Direktur Umum' }}
                 </h2>
+                <button @click="switchArchive()"
+                    class="px-3 py-2 rounded-lg text-sm font-semibold border bg-white dark:bg-gray-900">
+                    <span x-text="isArchive ? 'Tutup Arsip' : 'Lihat Arsip'"></span>
+                </button>
             </div>
 
             <div class="invoice-table px-5 pb-5">
-                {{-- KHUSUS UMUM --}}
-                @if ($jenis === 'umum')
-                    <div x-show="activeTab === 'belum_saya'" x-cloak>
-                        <table id="tableBelumSaya" class="whitespace-nowrap w-full"></table>
-                    </div>
+                <div x-show="!isArchive" x-cloak>
+                    {{-- KHUSUS UMUM --}}
+                    @if ($jenis === 'umum')
+                        <div x-show="activeTab === 'belum_saya'" x-cloak>
+                            <table id="tableBelumSaya" class="whitespace-nowrap w-full"></table>
+                        </div>
 
-                    <div x-show="activeTab === 'monitoring'" x-cloak>
-                        <table id="tableMonitoring" class="whitespace-nowrap w-full"></table>
-                    </div>
+                        <div x-show="activeTab === 'monitoring'" x-cloak>
+                            <table id="tableMonitoring" class="whitespace-nowrap w-full"></table>
+                        </div>
 
-                    <div x-show="activeTab === 'sudah'" x-cloak>
-                        <table id="tableSudah" class="whitespace-nowrap w-full"></table>
-                    </div>
+                        <div x-show="activeTab === 'sudah'" x-cloak>
+                            <table id="tableSudah" class="whitespace-nowrap w-full"></table>
+                        </div>
 
-                    <div x-show="activeTab === 'hold'" x-cloak>
-                        <table id="tableHold" class="whitespace-nowrap w-full"></table>
-                    </div>
-                @else
-                    {{-- DEFAULT UTAMA --}}
-                    <div x-show="activeTab === 'belum'" x-cloak>
-                        <table id="tableBelum" class="whitespace-nowrap w-full"></table>
-                    </div>
+                        <div x-show="activeTab === 'hold'" x-cloak>
+                            <table id="tableHold" class="whitespace-nowrap w-full"></table>
+                        </div>
+                    @else
+                        {{-- DEFAULT UTAMA --}}
+                        <div x-show="activeTab === 'belum'" x-cloak>
+                            <table id="tableBelum" class="whitespace-nowrap w-full"></table>
+                        </div>
 
-                    <div x-show="activeTab === 'sudah'" x-cloak>
-                        <table id="tableSudah" class="whitespace-nowrap w-full"></table>
-                    </div>
+                        <div x-show="activeTab === 'sudah'" x-cloak>
+                            <table id="tableSudah" class="whitespace-nowrap w-full"></table>
+                        </div>
 
-                    <div x-show="activeTab === 'hold'" x-cloak>
-                        <table id="tableHold" class="whitespace-nowrap w-full"></table>
-                    </div>
-                @endif
+                        <div x-show="activeTab === 'hold'" x-cloak>
+                            <table id="tableHold" class="whitespace-nowrap w-full"></table>
+                        </div>
+                    @endif
+                </div>
+
+                <div x-show="isArchive" x-cloak>
+                    <table id="tableArsip" class="whitespace-nowrap w-full"></table>
+                </div>
             </div>
         </div>
     </div>
@@ -342,6 +358,7 @@
                 belumSaya: [],
                 monitoring: [],
                 hold: [],
+                arsip: [],
 
                 // datatables
                 tableBelum: null,
@@ -349,8 +366,10 @@
                 tableBelumSaya: null,
                 tableMonitoring: null,
                 tableHold: null,
+                tableArsip: null,
 
                 activeTab: '{{ $jenis === 'umum' ? 'belum_saya' : 'belum' }}',
+                isArchive: false,
 
                 init() {
                     this.splitData();
@@ -361,21 +380,65 @@
                     this.activeTab = tab;
                 },
 
+                switchArchive() {
+                    this.isArchive = !this.isArchive;
+                },
+
+                isCurrentMonth(item) {
+                    if (!item?.created_at) return false;
+                    const raw = String(item.created_at).replace(' ', 'T');
+                    const dt = new Date(raw);
+                    if (Number.isNaN(dt.getTime())) return false;
+
+                    const now = new Date();
+                    return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+                },
+
                 splitData() {
+                    // Arsip: hanya yang sudah diinstruksi dan selesai
+                    this.arsip = this.all.filter(i => i.aksi === 'lihat' && i.status === 'Selesai');
+
                     // ===== DEFAULT UTAMA =====
-                    this.hold = this.all.filter(i => i.proses_status === 'hold');
-                    this.belum = this.all.filter(i => i.aksi === 'buat' && i.proses_status !== 'hold');
-                    this.sudah = this.all.filter(i => i.aksi === 'lihat' && i.proses_status !== 'hold');
+                    // Belum diinstruksi: selalu tampil (tidak dibatasi bulan)
+                    this.belum = this.all.filter(i =>
+                        i.aksi === 'buat' &&
+                        i.proses_status !== 'hold'
+                    );
+                    // Sudah diinstruksi aktif: hanya bulan ini, dan bukan selesai
+                    this.sudah = this.all.filter(i =>
+                        i.aksi === 'lihat' &&
+                        i.proses_status !== 'hold' &&
+                        i.status !== 'Selesai' &&
+                        this.isCurrentMonth(i)
+                    );
+                    // Hold aktif: hanya bulan ini, dan bukan selesai
+                    this.hold = this.all.filter(i =>
+                        i.proses_status === 'hold' &&
+                        i.status !== 'Selesai'
+                        && this.isCurrentMonth(i)
+                    );
 
                     // ===== KHUSUS UMUM (pakai field group dari controller) =====
-                    this.belumSaya = this.all.filter(i => i.group === 'belum_saya' && i.proses_status !== 'hold');
-                    this.monitoring = this.all.filter(i => i.group === 'monitoring' && i.proses_status !== 'hold');
+                    // Belum diinstruksi: selalu tampil
+                    this.belumSaya = this.all.filter(i =>
+                        i.group === 'belum_saya' &&
+                        i.proses_status !== 'hold'
+                    );
+                    this.monitoring = this.all.filter(i =>
+                        i.group === 'monitoring' &&
+                        i.proses_status !== 'hold'
+                    );
 
                     // untuk tab sudah (umum) tetap sama: group=sudah
                     // tapi kalau controller kamu hanya mengisi aksi, ini tetap aman karena sudah ada this.sudah di atas
                     // kalau mau lebih presisi untuk umum:
                     if ('{{ $jenis }}' === 'umum') {
-                        this.sudah = this.all.filter(i => i.group === 'sudah' && i.proses_status !== 'hold');
+                        this.sudah = this.all.filter(i =>
+                            i.group === 'sudah' &&
+                            i.proses_status !== 'hold' &&
+                            i.status !== 'Selesai' &&
+                            this.isCurrentMonth(i)
+                        );
                     }
                 },
 
@@ -388,6 +451,11 @@
                         i.no_disposisi ?? '-',
                         i.asal_surat ?? '-',
                         i.perihal ?? '-',
+                        JSON.stringify({
+                            text: i.posisi_terakhir ?? 'Belum ada instruksi Direktur',
+                            time: i.posisi_waktu ?? null,
+                            state: i.posisi_state ?? 'none'
+                        }),
                         i.jenis_disposisi ?? '-',
                         i.manager_approval ?? '-',
                         i.status ?? '-',
@@ -407,10 +475,12 @@
                             .monitoring));
                         this.tableSudah = this.createTable('#tableSudah', this.rows(this.sudah));
                         this.tableHold = this.createTable('#tableHold', this.rows(this.hold));
+                        this.tableArsip = this.createTable('#tableArsip', this.rows(this.arsip));
                     } else {
                         this.tableBelum = this.createTable('#tableBelum', this.rows(this.belum));
                         this.tableSudah = this.createTable('#tableSudah', this.rows(this.sudah));
                         this.tableHold = this.createTable('#tableHold', this.rows(this.hold));
+                        this.tableArsip = this.createTable('#tableArsip', this.rows(this.arsip));
                     }
                 },
 
@@ -425,6 +495,7 @@
                                 'No Disposisi',
                                 'Asal Surat',
                                 'Perihal',
+                                'Posisi Terakhir',
                                 'Jenis',
                                 'Manager Approval',
                                 'Status',
@@ -437,7 +508,7 @@
                         columns: [
                             // Jenis disposisi
                             {
-                                select: 4,
+                                select: 5,
                                 render: (data) => {
                                     const val = (data || '').toLowerCase();
                                     const color =
@@ -450,19 +521,20 @@
 
                             // Status
                             {
-                                select: 6,
+                                select: 7,
                                 render: (data) => {
                                     let color = 'secondary';
                                     if (data === 'Selesai') color = 'success';
                                     else if (data === 'Menunggu') color = 'warning';
                                     else if (data === 'Diproses') color = 'info';
+                                    else if (data === 'Hold') color = 'danger';
                                     return `<span class="badge badge-outline-${color}">${data}</span>`;
                                 }
                             },
 
                             // Umur
                             {
-                                select: 7,
+                                select: 8,
                                 render: (data) => {
                                     let totalHours = 0;
                                     const h = String(data).match(/(\d+)\s*hari/);
@@ -476,6 +548,20 @@
                                     else color = 'danger';
 
                                     return `<span class="badge badge-outline-${color}">${data}</span>`;
+                                }
+                            },
+                            {
+                                select: 4,
+                                sortable: false,
+                                render: (cell) => {
+                                    const d = JSON.parse(cell);
+                                    const text = (d.text ?? '-').replaceAll('\n', '<br>');
+                                    return `
+                                        <div class="text-sm">
+                                            <div class="leading-snug">${text}</div>
+                                            ${d.time ? `<div class="text-xs text-gray-500 mt-1">Update: ${d.time}</div>` : ''}
+                                        </div>
+                                    `;
                                 }
                             },
 
