@@ -170,6 +170,8 @@
                                         {{ $user->primaryPosition()->name ?? '-' }}
                                         @if ($user->id == auth()->id())
                                             (Anda)
+                                        @elseif($disposisi->validator_manager_id && $user->id == $disposisi->validator_manager_id)
+                                            (Validator Manager)
                                         @elseif(in_array($user->id, $selectedPenerimaIds))
                                             (Ditentukan Direktur Utama)
                                         @endif

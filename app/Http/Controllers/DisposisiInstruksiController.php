@@ -574,6 +574,11 @@ class DisposisiInstruksiController extends Controller
         // Ambil ID penerima yang sudah ada
         $selectedPenerimaIds = $disposisi->penerimas->pluck('id')->toArray();
 
+        // Pastikan manager validator langsung muncul sebagai penerima terpilih di form
+        if (!empty($disposisi->validator_manager_id) && !in_array($disposisi->validator_manager_id, $selectedPenerimaIds)) {
+            $selectedPenerimaIds[] = (int) $disposisi->validator_manager_id;
+        }
+
         // Cek apakah direktur umum termasuk penerima disposisi ini
         $isPenerimaDirekturUmum = $disposisi->penerimas
             ->where('id', auth()->id())
@@ -753,6 +758,18 @@ class DisposisiInstruksiController extends Controller
 
         $disposisi = Disposisi::findOrFail($id);
         $syncData = [];
+
+        // =====================================================
+        // AUTO-TAMBAH MANAGER VALIDATOR (JIKA ADA)
+        // =====================================================
+        $validatorId = $disposisi->validator_manager_id;
+        if ($validatorId) {
+            $penerimaIds = $request->penerima_ids;
+            if (!in_array($validatorId, $penerimaIds)) {
+                $penerimaIds[] = $validatorId;
+                $request->merge(['penerima_ids' => $penerimaIds]);
+            }
+        }
 
         // =====================================================
         // AUTO-TAMBAH DIREKTUR UMUM jika ada penerima bawahan DU
@@ -968,6 +985,11 @@ class DisposisiInstruksiController extends Controller
 
         $selectedPenerimaIds = $disposisi->penerimas->pluck('id')->toArray();
 
+        // Pastikan manager validator langsung muncul sebagai penerima terpilih di form edit
+        if (!empty($disposisi->validator_manager_id) && !in_array($disposisi->validator_manager_id, $selectedPenerimaIds)) {
+            $selectedPenerimaIds[] = (int) $disposisi->validator_manager_id;
+        }
+
         // === Tandai Dibaca jika DU membuka edit dan dia salah satu penerima ===
         if ($jenis === 'umum') {
             $isPenerimaDU = $disposisi->penerimas
@@ -1126,6 +1148,18 @@ class DisposisiInstruksiController extends Controller
         $disposisi = $instruksi->disposisi()->first();
 
         $syncData = [];
+
+        // =====================================================
+        // AUTO-TAMBAH MANAGER VALIDATOR (JIKA ADA)
+        // =====================================================
+        $validatorId = $disposisi->validator_manager_id;
+        if ($validatorId) {
+            $penerimaIds = $request->penerima_ids;
+            if (!in_array($validatorId, $penerimaIds)) {
+                $penerimaIds[] = $validatorId;
+                $request->merge(['penerima_ids' => $penerimaIds]);
+            }
+        }
 
         foreach ($request->penerima_ids as $uid) {
 

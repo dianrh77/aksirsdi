@@ -13,6 +13,7 @@ class Disposisi extends Model
         'no_disposisi',
         'surat_id',
         'pengirim_id',
+        'validator_manager_id',
         'catatan',
         'status',
         'jenis_disposisi',
@@ -41,6 +42,11 @@ class Disposisi extends Model
     public function pengirim()
     {
         return $this->belongsTo(User::class, 'pengirim_id');
+    }
+
+    public function validatorManager()
+    {
+        return $this->belongsTo(User::class, 'validator_manager_id');
     }
 
     public function suratMasuk()

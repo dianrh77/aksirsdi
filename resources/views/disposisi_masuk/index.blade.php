@@ -114,10 +114,17 @@
 
                     <template x-for="task in filteredTasks(archiveTasks)" :key="task.id">
                         <div class="bg-white dark:bg-gray-900 border rounded-xl p-4">
-                            <h4 class="font-semibold" x-text="task.disposisi_no"></h4>
-                            <p class="text-sm mt-1">
-                                <strong>Perihal:</strong> <span x-text="task.perihal"></span>
-                            </p>
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <h4 class="font-semibold" x-text="task.disposisi_no"></h4>
+                                    <p class="text-sm mt-1">
+                                        <strong>Perihal:</strong> <span x-text="task.perihal"></span>
+                                    </p>
+                                </div>
+                                <a :href="`/disposisi-masuk/${task.id}`" class="btn btn-sm btn-outline-primary">
+                                    Lihat Detail
+                                </a>
+                            </div>
                         </div>
                     </template>
 
